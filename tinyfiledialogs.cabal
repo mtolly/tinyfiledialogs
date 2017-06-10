@@ -1,0 +1,50 @@
+name:                 tinyfiledialogs
+version:              0.1.0.0
+homepage:             https://github.com/mtolly/tinyfiledialogs
+license:              BSD3
+license-file:         LICENSE
+author:               Guillaume Vareille (C lib), Michael Tolly (hs)
+maintainer:           miketolly@gmail.com
+copyright:            2017 Michael Tolly
+category:             GUI
+build-type:           Simple
+extra-source-files:
+  README.md
+  cbits/tinyfiledialogs.h
+cabal-version:        >= 1.10
+synopsis:             Wrapper around the 'tiny file dialogs' C library
+description:
+  <https://sourceforge.net/projects/tinyfiledialogs/ tiny file dialogs>
+  is a single self-contained C library that provides a powerful set of
+  cross-platform dialog boxes providing the following functions:
+  .
+  * message & question
+  .
+  * input & password
+  .
+  * save file
+  .
+  * open file(s)
+  .
+  * select folder
+  .
+  * color picker
+  .
+  This package bundles the C library and provides a complete Haskell interface.
+
+library
+  hs-source-dirs:       src
+  exposed-modules:      Graphics.UI.TinyFileDialogs
+  build-depends:        base >= 4.7 && < 5, text
+  default-language:     Haskell2010
+  ghc-options:          -Wall
+  c-sources:
+    cbits/tinyfiledialogs.c
+  include-dirs:
+    cbits/
+  if os(mingw32)
+    extra-libraries: comdlg32, ole32
+
+source-repository head
+  type:     git
+  location: https://github.com/mtolly/tinyfiledialogs
