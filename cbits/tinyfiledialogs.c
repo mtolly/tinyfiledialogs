@@ -108,7 +108,7 @@ misrepresented as being the original software.
  #include <conio.h>
  /*#include <io.h>*/
  #define SLASH "\\"
- int tinyfd_winUtf8 = 0 ; /* on windows string char can be 0:MBSC or 1:UTF-8 */
+ int tinyfd_winUtf8 = 1 ; /* on windows string char can be 0:MBSC or 1:UTF-8 */
 #else
  #include <limits.h>
  #include <unistd.h>
@@ -1008,7 +1008,16 @@ name = 'txt_input' value = '' style = 'float:left;width:100%%' ><BR>\n\
 </html>\n\
 "		, aTitle ? aTitle : "", aMessage ? aMessage : "") ;
 	}
-	fputs(lDialogString, lIn);
+	if (tinyfd_winUtf8)
+	{
+		lDialogStringW = utf8to16(lDialogString);
+		fputws(lDialogStringW, lIn);
+		free(lDialogStringW);
+	}
+	else
+	{
+		fputs(lDialogString, lIn);
+	}
 	fclose(lIn);
 
 	strcpy(lDialogString, "");
@@ -1055,40 +1064,40 @@ name = 'txt_input' value = '' style = 'float:left;width:100%%' ><BR>\n\
 	}
 	*/
 
-	if (aDefaultInput)
+	sprintf(lDialogString, "%s\\AppData\\Local\\Temp\\tinyfd.txt",
+		getenv("USERPROFILE"));
+	if (!(lIn = fopen(lDialogString, "r")))
 	{
-		sprintf(lDialogString, "%s\\AppData\\Local\\Temp\\tinyfd.txt",
-			getenv("USERPROFILE"));
-		if (!(lIn = fopen(lDialogString, "r")))
-		{
-			remove(lDialogString);
-			free(lDialogString);
-			return NULL;
-		}
+		remove(lDialogString);
+		free(lDialogString);
+		return NULL;
+	}
+	if (tinyfd_winUtf8)
+	{
+		// MT TODO: write results in utf8.
+		// hta and vbs write different encodings out.
+		// vbs writes CP437, and replaces invalid chars with ? or others.
+		// hta writes Windows-1252 if possible,
+		// otherwise I think it writes utf-16
+		// (which causes NULL at bottom of this function)
 		while (fgets(aoBuff, MAX_PATH_OR_CMD, lIn) != NULL)
 		{}
-		fclose(lIn);
-		remove(lDialogString);
-
+	}
+	else
+	{
+		while (fgets(aoBuff, MAX_PATH_OR_CMD, lIn) != NULL)
+		{}
+	}
+	fclose(lIn);
+	wipefile(lDialogString);
+	remove(lDialogString);
+	if (aDefaultInput)
+	{
 		sprintf(lDialogString, "%s\\AppData\\Local\\Temp\\tinyfd.vbs",
 			getenv("USERPROFILE"));
 	}
 	else
 	{
-		sprintf(lDialogString, "%s\\AppData\\Local\\Temp\\tinyfd.txt",
-			getenv("USERPROFILE"));
-		if (!(lIn = fopen(lDialogString, "r")))
-		{
-			remove(lDialogString);
-			free(lDialogString);
-			return NULL;
-		}
-		while (fgets(aoBuff, MAX_PATH_OR_CMD, lIn) != NULL)
-		{}
-		fclose(lIn);
-		
-		wipefile(lDialogString);
-		remove(lDialogString);
 		sprintf(lDialogString, "%s\\AppData\\Local\\Temp\\tinyfd.hta",
 			getenv("USERPROFILE"));
 	}
@@ -2669,6 +2678,7 @@ char const * tinyfd_openFileDialog (
 	{
 		return NULL;
 	}
+	/* MT: removing this because it doesn't work for windows non-ascii files
 	if ( aAllowMultipleSelects && strchr(p, '|') )
 	{
 		p = ensureFilesExist( lBuff , p ) ;
@@ -2677,6 +2687,7 @@ char const * tinyfd_openFileDialog (
 	{
 		return NULL ;
 	}
+	*/
 	/* printf ( "lBuff3: %s\n" , p ) ; */
 	return p ;
 }

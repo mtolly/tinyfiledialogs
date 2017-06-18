@@ -36,6 +36,7 @@ library
   hs-source-dirs:       src
   exposed-modules:      Graphics.UI.TinyFileDialogs
   build-depends:        base >= 4.7 && < 5, text
+  build-tools:          c2hs
   default-language:     Haskell2010
   ghc-options:          -Wall
   c-sources:
@@ -43,7 +44,9 @@ library
   include-dirs:
     cbits/
   if os(mingw32)
+    build-depends: bytestring
     extra-libraries: comdlg32, ole32
+    cpp-options: -DWINDOWS
 
 source-repository head
   type:     git

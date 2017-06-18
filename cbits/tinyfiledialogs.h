@@ -182,6 +182,7 @@ char const * tinyfd_colorChooser(
 		/* aDefaultRGB and aoResultRGB can be the same array */
 		/* returns NULL on cancel */
 
+#if 0
 
 /************ NOT CROSS PLATFORM SECTION STARTS HERE ************************/
 #ifdef _WIN32
@@ -251,6 +252,8 @@ char const * tinyfd_arrayDialog(
 
 #ifdef	__cplusplus
 }
+#endif
+
 #endif
 
 #endif /* TINYFILEDIALOGS_H */

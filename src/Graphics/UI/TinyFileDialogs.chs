@@ -9,23 +9,32 @@ module Graphics.UI.TinyFileDialogs
 , colorChooser
 ) where
 
-import           Data.Char         (toLower)
-import qualified Data.Text         as T
-import qualified Data.Text.Foreign as T
-import           Foreign           (Ptr, Word8, nullPtr, peekArray, withArray,
-                                    withArrayLen, withMany)
-import           Foreign.C         (CInt, CString, CUChar, peekCString,
-                                    withCString)
+import           Data.Char          (toLower)
+import qualified Data.Text          as T
+import           Foreign            (Ptr, Word8, nullPtr, peekArray, withArray,
+                                     withArrayLen, withMany)
+import           Foreign.C          (CInt, CString, CUChar)
+
+#ifdef WINDOWS
+import qualified Data.ByteString    as B
+import qualified Data.Text.Encoding as TE
+#else
+import           Foreign.C          (peekCString, withCString)
+#endif
 
 #include "tinyfiledialogs.h"
 
 {#context prefix = "tinyfd_" #}
 
 withCText :: T.Text -> (CString -> IO a) -> IO a
-withCText t f = T.withCStringLen (T.snoc t '\0') (f . fst)
+#ifdef WINDOWS
+withCText = B.useAsCString . TE.encodeUtf8
+#else
+withCText = withCString . T.unpack
+#endif
 
 withCShowLower :: (Show a) => a -> (CString -> IO b) -> IO b
-withCShowLower = withCString . map toLower . show
+withCShowLower = withCText . T.pack . map toLower . show
 
 withCMaybeText :: Maybe T.Text -> (CString -> IO a) -> IO a
 withCMaybeText mt f = case mt of
@@ -35,7 +44,12 @@ withCMaybeText mt f = case mt of
 peekMaybeText :: CString -> IO (Maybe T.Text)
 peekMaybeText cstr = if cstr == nullPtr
   then return Nothing
+#ifdef WINDOWS
+  -- TODO unicode: see encoding notes in inputBoxWinGui
+  else fmap (Just . TE.decodeLatin1) $ B.packCString cstr
+#else
   else fmap (Just . T.pack) $ peekCString cstr
+#endif
 
 peekMaybeTextMultiple :: CString -> IO (Maybe [T.Text])
 peekMaybeTextMultiple = fmap (fmap $ T.splitOn (T.singleton '|')) . peekMaybeText
