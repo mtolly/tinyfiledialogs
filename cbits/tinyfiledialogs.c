@@ -1,53 +1,57 @@
-/*
- _________
-/         \ tinyfiledialogs.c v2.7.2 [November 23, 2016] zlib licence
-|tiny file| Unique code file of "tiny file dialogs" created [November 9, 2014]
-| dialogs | Copyright (c) 2014 - 2016 Guillaume Vareille http://ysengrin.com
-\____  ___/ http://tinyfiledialogs.sourceforge.net
-     \|           	                     mailto:tinyfiledialogs@ysengrin.com
+/*_________
+ /         \ tinyfiledialogs.c v2.8.6 [Jun 16, 2017] zlib licence
+ |tiny file| Unique code file created [November 9, 2014]
+ | dialogs | Copyright (c) 2014 - 2017 Guillaume Vareille http://ysengrin.com
+ \____  ___/ http://tinyfiledialogs.sourceforge.net
+      \|
+                                git://git.code.sf.net/p/tinyfiledialogs/code
+		 ______________________________________________
+		|                                              |
+		|     email: tinyfiledialogs@ysengrin.com      |
+		|______________________________________________|
 
 A big thank you to Don Heyse http://ldglite.sf.net for
                    his code contributions, bug corrections & thorough testing!
 		
-            git://git.code.sf.net/p/tinyfiledialogs/code
-
 Please
 	1) let me know
 	- if you are including tiny file dialogs,
 	  I'll be happy to add your link to the list of projects using it.
 	- If you are using it on different hardware / OS / compiler.
-	2) Be the first to leave a review on Sourceforge. Thanks.
+	2) leave a review on Sourceforge. Thanks.
 
 tiny file dialogs (cross-platform C C++)
 InputBox PasswordBox MessageBox ColorPicker
 OpenFileDialog SaveFileDialog SelectFolderDialog
 Native dialog library for WINDOWS MAC OSX GTK+ QT CONSOLE & more
+SSH supported via automatic switch to console mode or X11 forwarding
 
-A single C file (add it to your C or C++ project) with 6 boxes:
-- message / question
-- input / password
+A single C file (add it to your C or C++ project) with 6 functions:
+- message & question
+- input & password
 - save file
-- open file & multiple files
+- open file(s)
 - select folder
 - color picker.
 
 Complements OpenGL GLFW GLUT GLUI VTK SFML SDL Ogre Unity ION
-CEGUI MathGL CPW GLOW IMGUI GLT NGL STB & GUI less programs
+CEGUI MathGL CPW GLOW IMGUI MyGUI GLT NGL STB & GUI less programs
 
 NO INIT
 NO MAIN LOOP
 
 The dialogs can be forced into console mode
 
-Windows (XP to 10) [ASCII + MBCS + UTF-8 + UTF-16]
-- native code & some vbs create the graphic dialogs
+Windows (XP to 10) ASCII + MBCS + UTF-8 + UTF-16
+- native code & vbs create the graphic dialogs
 - enhanced console mode can use dialog.exe from
 http://andrear.altervista.org/home/cdialog.php
 - basic console input
 
-Unix (command line call attempts) [ASCII + UTF-8]
+Unix (command line call attempts) ASCII + UTF-8
 - applescript
 - zenity / matedialog
+- qarma (zenity for qt)
 - kdialog
 - Xdialog
 - python2 tkinter
@@ -96,7 +100,10 @@ misrepresented as being the original software.
  #endif
  #ifndef TINYFD_NOLIB
   #include <Windows.h>
-  #include <Shlobj.h>
+  /*#define TINYFD_NOSELECTFOLDERWIN*/
+  #ifndef TINYFD_NOSELECTFOLDERWIN
+	#include <Shlobj.h>
+  #endif /*TINYFD_NOSELECTFOLDERWIN*/
  #endif
  #include <conio.h>
  /*#include <io.h>*/
@@ -114,7 +121,9 @@ misrepresented as being the original software.
 #define MAX_PATH_OR_CMD 1024 /* _MAX_PATH or MAX_PATH */
 #define MAX_MULTIPLE_FILES 32
 
-char tinyfd_version [8] = "2.7.2";
+char tinyfd_version [8] = "2.8.6";
+
+static int tinyfd_verbose = 0 ; /* print on unix the command line calls */
 
 #if defined(TINYFD_NOLIB) && defined(_WIN32)
 int tinyfd_forceConsole = 1 ;
@@ -134,7 +143,7 @@ but and return 0 for console mode, 1 for graphic mode.
 tinyfd_response is then filled with the retain solution.
 possible values for tinyfd_response are (all lowercase)
 for the graphic mode:
-  windows applescript zenity zenity3 matedialog kdialog
+  windows applescript zenity zenity3 matedialog qarma kdialog
   xdialog tkinter gdialog gxmessage xmessage
 for the console mode:
   dialog whiptail basicinput */
@@ -145,29 +154,37 @@ static int gWarningDisplayed = 1 ;
 static int gWarningDisplayed = 0 ;
 #endif
 
-static char gTitle[]="missing software! (so we switch to basic console input)";
+static char gTitle[]="missing software! (we will try basic console input)";
 
-static char gAsciiArt[] ="\
+#ifdef _WIN32
+static char gMessageWin[] = "\
  ___________\n\
 /           \\ \n\
 | tiny file |\n\
 |  dialogs  |\n\
 \\_____  ____/\n\
-      \\|";
-
-#ifdef _WIN32
-static char gMessageWin[] = "tiny file dialogs on Windows needs:\n\t\
-							a graphic display\nor\tdialog.exe (enhanced console mode)\
-							\nor\ta console for basic input";
+      \\|\
+tiny file dialogs on Windows needs:\
+\n\ta graphic display\
+\nor\tdialog.exe (enhanced console mode)\
+\nor\ta console for basic input";
 #else
-static char gMessageUnix[] = "tiny file dialogs on UNIX needs:\n\tapplescript\
+static char gMessageUnix[] = "\
+ ___________\n\
+/           \\ \n\
+| tiny file |\n\
+|  dialogs  |\n\
+\\_____  ____/\n\
+      \\|\
+\ntiny file dialogs on UNIX needs:\n\tapplescript\
 \nor\tzenity / matedialog\
+\nor\tqarma (zenity for qt)\
 \nor\tkdialog\
 \nor\tXdialog\
-\nor\tpython 2 with tkinter\
-\nor\tdialog (opens a console if needed)\
-\nor\twhiptail, gdialog, gxmessage or xmessage\
-\nor\tit will use/open a console for basic input";
+\nor\tpython 2 + tkinter\
+\nor\tdialog (opens a console xterm if needed)\
+\nor\txterm + bash (opens a console for basic input)\
+\nor\tit will use the existing console for basic input";
 #endif
 
 #ifdef _MSC_VER
@@ -1419,6 +1436,24 @@ static char const * openFileDialogWinGui8(
 	return aoBuff;
 }
 
+#ifndef TINYFD_NOSELECTFOLDERWIN
+static int __stdcall BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pData)
+{
+	if (uMsg == BFFM_INITIALIZED)
+	{
+		SendMessage(hwnd, BFFM_SETSELECTION, TRUE, pData);
+	}
+	return 0;
+}
+
+static int __stdcall BrowseCallbackProcW(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pData)
+{
+	if (uMsg == BFFM_INITIALIZED)
+	{
+		SendMessage(hwnd, BFFM_SETSELECTIONW, TRUE, (LPARAM)pData);
+	}
+	return 0;
+}
 
 wchar_t const * tinyfd_selectFolderDialogW(
 	wchar_t const * const aTitle, /*  NULL or "" */
@@ -1432,14 +1467,16 @@ wchar_t const * tinyfd_selectFolderDialogW(
 
 	lHResult = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
-	/* we can't use aDefaultPath */
 	bInfo.hwndOwner = 0;
 	bInfo.pidlRoot = NULL;
 	bInfo.pszDisplayName = lBuff;
 	bInfo.lpszTitle = aTitle && wcslen(aTitle) ? aTitle : NULL;
-	bInfo.ulFlags = BIF_USENEWUI;
-	bInfo.lpfn = NULL;
-	bInfo.lParam = 0;
+	if (lHResult == S_OK || lHResult == S_FALSE)
+	{
+		bInfo.ulFlags = BIF_USENEWUI;
+	}
+	bInfo.lpfn = BrowseCallbackProcW;
+	bInfo.lParam = (LPARAM)aDefaultPath;
 	bInfo.iImage = -1;
 
 	lpItem = SHBrowseForFolderW(&bInfo);
@@ -1486,6 +1523,7 @@ static char const * selectFolderDialogWinGui8 (
 
 	return aoBuff;
 }
+#endif /*TINYFD_NOSELECTFOLDERWIN*/
 
 
 wchar_t const * tinyfd_colorChooserW(
@@ -1500,10 +1538,8 @@ wchar_t const * tinyfd_colorChooserW(
 	unsigned char lDefaultRGB[3];
 	int lRet;
 
-	/*
 	HRESULT lHResult;
 	lHResult = CoInitializeEx(NULL, 0);
-	*/
 
 	if (aDefaultHexRGB)
 	{
@@ -1540,12 +1576,10 @@ wchar_t const * tinyfd_colorChooserW(
 
 	RGB2HexW(aoResultRGB, lResultHexRGB);
 
-	/*
 	if (lHResult == S_OK || lHResult == S_FALSE)
 	{
 		CoUninitialize();
 	}
-	*/
 
 	return lResultHexRGB;
 }
@@ -1869,7 +1903,7 @@ static char const * openFileDialogWinGuiA (
 	return lRetval;
 }
 
-
+#ifndef TINYFD_NOSELECTFOLDERWIN
 static char const * selectFolderDialogWinGuiA (
 	char * const aoBuff ,
 	char const * const aTitle , /*  NULL or "" */
@@ -1886,9 +1920,12 @@ static char const * selectFolderDialogWinGuiA (
 	bInfo.pidlRoot = NULL ;
 	bInfo.pszDisplayName = aoBuff ;
 	bInfo.lpszTitle = aTitle && strlen(aTitle) ? aTitle : NULL;
-	bInfo.ulFlags = BIF_USENEWUI;
-	bInfo.lpfn = NULL ;
-	bInfo.lParam = 0 ;
+	if (lHResult == S_OK || lHResult == S_FALSE)
+	{
+		bInfo.ulFlags = BIF_USENEWUI;
+	}
+	bInfo.lpfn = BrowseCallbackProc;
+	bInfo.lParam = (LPARAM)aDefaultPath;
 	bInfo.iImage = -1 ;
 
 	lpItem = SHBrowseForFolderA ( & bInfo ) ;
@@ -1903,6 +1940,7 @@ static char const * selectFolderDialogWinGuiA (
 	}
 	return aoBuff ;
 }
+#endif /*TINYFD_NOSELECTFOLDERWIN*/
 
 
 static char const * colorChooserWinGuiA(
@@ -2392,13 +2430,12 @@ int tinyfd_messageBox (
 		if (!gWarningDisplayed && !tinyfd_forceConsole )
 		{
 			gWarningDisplayed = 1; 
-			printf("\n\n%s", gAsciiArt);
-			printf("\n%s\n", gTitle);
-			printf("%s\n\n\n", gMessageWin);
+			printf("\n\n%s\n", gTitle);
+			printf("%s\n\n", gMessageWin);
 		}
  		if ( aTitle && strlen(aTitle) )
 		{
-			printf ("%s\n\n", aTitle);
+			printf ("\n%s\n\n", aTitle);
 		}
 		if ( aDialogType && !strcmp("yesno",aDialogType) )
 		{
@@ -2482,13 +2519,12 @@ char const * tinyfd_inputBox(
       if (!gWarningDisplayed && !tinyfd_forceConsole)
       {
           gWarningDisplayed = 1 ;
-          printf("\n\n%s", gAsciiArt);
-          printf("\n%s\n", gTitle);
-          printf("%s\n\n\n", gMessageWin);
+          printf("\n\n%s\n", gTitle);
+          printf("%s\n\n", gMessageWin);
       }
       if ( aTitle && strlen(aTitle) )
       {
-          printf ("%s\n\n", aTitle);
+          printf ("\n%s\n\n", aTitle);
       }
       if ( aMessage && strlen(aMessage) )
       {
@@ -2659,11 +2695,13 @@ char const * tinyfd_selectFolderDialog (
 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"windows");return (char const *)1;}
 		if (tinyfd_winUtf8)
 		{
+#ifndef TINYFD_NOSELECTFOLDERWIN
 			p = selectFolderDialogWinGui8(lBuff, aTitle, aDefaultPath);
 		}
 		else
 		{
 			p = selectFolderDialogWinGuiA(lBuff, aTitle, aDefaultPath);
+#endif /*TINYFD_NOSELECTFOLDERWIN*/
 		}
 	}
 	else
@@ -2788,7 +2826,8 @@ static int detectPresence ( char const * const aExecutable )
     strcat ( lTestedString , aExecutable ) ;
     lIn = popen ( lTestedString , "r" ) ;
     if ( ( fgets ( lBuff , sizeof ( lBuff ) , lIn ) != NULL )
-        && ( ! strchr ( lBuff , ':' ) ) )
+		&& ( ! strchr ( lBuff , ':' ) )
+		&& ( strncmp(lBuff, "no ", 3) ) )
     {	/* present */
     	pclose ( lIn ) ;
     	return 1 ;
@@ -2821,127 +2860,13 @@ static int tryCommand ( char const * const aCommand )
 }
 
 
-static char const * terminalName ( )
+static int isTerminalRunning()
 {
-	static char lTerminalName[64] = "*" ;
-	if ( lTerminalName[0] == '*' )
-	{
-		if ( isDarwin() )
-		{
-			if ( strcpy(lTerminalName , "/opt/X11/bin/xterm" )
-		      && detectPresence ( lTerminalName ) )
-			{
-				strcat(lTerminalName , " -e bash -c " ) ;
-			}
-			else
-			{
-				strcpy(lTerminalName , "" ) ;
-			}
-		}
-		else if ( strcpy(lTerminalName,"terminator") /*good*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -x bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"lxterminal") /*good*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"mate-terminal") /*good*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -x bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"konsole")
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"rxvt") /*good*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"urxvt") /*good*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"mrxvt") /*good*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"evilvte") /*good*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"termit") /*good*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"kterm") /*good*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"roxterm") /*good*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"xterm") /*good small*/
-			&& detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"lxterm") /*good small*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"xvt") /*good B&W*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"pterm") /*good only letters*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"x-terminal-emulator") /*alias*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -e bash -c " ) ;
-		}
-		else if ( strcpy(lTerminalName,"$TERM") /*alias*/
-			  && detectPresence(lTerminalName) )
-		{
-			strcat(lTerminalName , " -x bash -c " ) ;
-		}
-		else
-		{
-			strcpy(lTerminalName , "" ) ;
-		}
-		/* bad: koi8rxterm xfce4-terminal gnome-terminal guake tilda
-				vala-terminal Eterm aterm Terminal terminology sakura lilyterm*/
-	}
-	if ( strlen(lTerminalName) )
-	{
-		return lTerminalName ;
-	}
-	else
-	{
-		return NULL ;
-	}
+	return isatty(1);
 }
 
 
-static char const * dialogName ( )
+static char const * dialogNameOnly ( )
 {
 	static char lDialogName[64] = "*" ;
 	if ( lDialogName[0] == '*' )
@@ -2957,7 +2882,192 @@ static char const * dialogName ( )
 			strcpy(lDialogName , "" ) ;
 		}
 	}
-	if ( strlen(lDialogName) && ( isatty(1) || terminalName() ) )
+    return lDialogName ;
+}
+
+
+static int whiptailPresentOnly ( )
+{
+	static int lWhiptailPresent = -1 ;
+	if ( lWhiptailPresent < 0 )
+	{
+		lWhiptailPresent = detectPresence ( "whiptail" ) ;
+	}
+	return lWhiptailPresent ;
+}
+
+
+static char const * terminalName ( )
+{
+	static char lTerminalName[128] = "*" ;
+	char lShellName[64] = "*" ;
+
+	if ( lTerminalName[0] == '*' )
+	{
+		if ( detectPresence ( "bash" ) )
+		{
+			strcpy(lShellName , "bash -c " ) ; /*good for basic input*/
+		}
+        else if ( dialogNameOnly() || whiptailPresentOnly() )
+        {
+    		strcpy(lShellName , "sh -c " ) ; /*good enough for dialog & whiptail*/
+        }
+        else
+        {
+            return NULL ;
+        }
+
+		if ( isDarwin() )
+		{
+			if ( strcpy(lTerminalName , "/opt/X11/bin/xterm" )
+		      && detectPresence ( lTerminalName ) )
+			{
+				strcat(lTerminalName , " -fa 'DejaVu Sans Mono' -fs 10 -title tinyfiledialogs -e " ) ;
+				strcat(lTerminalName , lShellName ) ;
+			}
+			else
+			{
+				strcpy(lTerminalName , "" ) ;
+			}
+		}
+		else if ( strcpy(lTerminalName,"xterm") /*good small without parameters*/
+			&& detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -fa 'DejaVu Sans Mono' -fs 10 -title tinyfiledialogs -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"terminator") /*good*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -x " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"lxterminal") /*good*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"mate-terminal") /*good*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -x " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"konsole")
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"rxvt") /*good*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"urxvt") /*good*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"mrxvt") /*good*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"evilvte") /*good*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"termit") /*good*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"kterm") /*good*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"roxterm") /*good*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"lxterm") /*good small*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"gnome-terminal") /*good*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " --disable-factory -x " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"xfce4-terminal") /*bad but maybe corrected*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -x " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"xvt") /*good B&W*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"pterm") /*good only letters*/
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		/* aliases:
+        else if ( strcpy(lTerminalName,"x-terminal-emulator")
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}
+		else if ( strcpy(lTerminalName,"$TERM")
+			  && detectPresence(lTerminalName) )
+		{
+			strcat(lTerminalName , " -e " ) ;
+			strcat(lTerminalName , lShellName ) ;
+		}*/
+		else
+		{
+			strcpy(lTerminalName , "" ) ;
+		}
+		/* bad: koi8rxterm xfce4-terminal guake tilda vala-terminal qterminal
+                Eterm aterm Terminal terminology sakura lilyterm */
+	}
+	if ( strlen(lTerminalName) )
+	{
+		return lTerminalName ;
+	}
+	else
+	{
+		return NULL ;
+	}
+}
+
+
+static char const * dialogName ( )
+{
+    char const * lDialogName ;
+    lDialogName = dialogNameOnly ( ) ;
+	if ( strlen(lDialogName) && ( isTerminalRunning() || terminalName() ) )
 	{
 		return lDialogName ;
 	}
@@ -2970,19 +3080,25 @@ static char const * dialogName ( )
 
 static int whiptailPresent ( )
 {
-	static int lWhiptailPresent = -1 ;
-	if ( lWhiptailPresent < 0 )
+	int lWhiptailPresent ;
+    lWhiptailPresent = whiptailPresentOnly ( ) ;
+	if ( lWhiptailPresent && ( isTerminalRunning() || terminalName() ) )
 	{
-		lWhiptailPresent = detectPresence ( "whiptail" ) ;
+		return lWhiptailPresent ;
 	}
-	return lWhiptailPresent && ( isatty(1) || terminalName() ) ;
+	else
+	{
+		return 0 ;
+	}
 }
+
 
 
 static int graphicMode()
 {
-	return !( tinyfd_forceConsole && (isatty(1) || terminalName()) )
-		&& ( getenv("DISPLAY") || (isDarwin() && !(getenv("SSH_TTY") ) ) ) ;
+	return !( tinyfd_forceConsole && (isTerminalRunning() || terminalName()) )
+	  && ( getenv("DISPLAY")
+	    || (isDarwin() && (!getenv("SSH_TTY") || getenv("DISPLAY") ) ) ) ;
 }
 
 
@@ -2991,6 +3107,7 @@ static int xmessagePresent ( )
 	static int lXmessagePresent = -1 ;
 	if ( lXmessagePresent < 0 )
 	{
+		gWarningDisplayed |= !!getenv("SSH_TTY");
 		lXmessagePresent = detectPresence("xmessage");/*if not tty,not on osxpath*/
 	}
 	return lXmessagePresent && graphicMode ( ) ;
@@ -3048,7 +3165,7 @@ static int osascriptPresent ( )
     {
         lOsascriptPresent = detectPresence ( "osascript" ) ;
     }
-	return lOsascriptPresent && graphicMode ( ) ;
+	return lOsascriptPresent && graphicMode() && !getenv("SSH_TTY") ;
 }
 
 
@@ -3060,6 +3177,17 @@ static int kdialogPresent ( )
 		lKdialogPresent = detectPresence("kdialog") ;
 	}
 	return lKdialogPresent && graphicMode ( ) ;
+}
+
+
+static int qarmaPresent ( )
+{
+	static int lQarmaPresent = -1 ;
+	if ( lQarmaPresent < 0 )
+	{
+		lQarmaPresent = detectPresence("qarma") ;
+	}
+	return lQarmaPresent && graphicMode ( ) ;
 }
 
 
@@ -3128,11 +3256,11 @@ static int zenity3Present ( )
 			{
 				if ( atoi(lBuff) >= 3 )
 				{
-					lZenity3Present = 1 ;
+					lZenity3Present = 3 ;
 				}
 				else if ( ( atoi(lBuff) == 2 ) && ( atoi(strtok(lBuff,".")+2 ) >= 32 ) )
 				{
-					lZenity3Present = 1 ;
+					lZenity3Present = 2 ;
 				}
 			}
 			pclose ( lIn ) ;
@@ -3152,15 +3280,16 @@ static int tkinter2Present ( )
 
 	if ( lTkinter2Present < 0 )
 	{
+		lTkinter2Present = 0 ;
 		strcpy(gPython2Name , "python" ) ;
 		sprintf ( lPythonCommand , "%s %s" , gPython2Name , lPythonParams ) ;
-		lTkinter2Present = tryCommand(lPythonCommand);		
-		if ( ! lTkinter2Present )
+		if ( ! detectPresence(gPython2Name)
+                 || ! (lTkinter2Present = tryCommand(lPythonCommand)) )
 		{
 			strcpy(gPython2Name , "python2" ) ;
 			if ( detectPresence(gPython2Name) )
 			{
-		sprintf ( lPythonCommand , "%s %s" , gPython2Name , lPythonParams ) ;
+				sprintf ( lPythonCommand , "%s %s" , gPython2Name , lPythonParams ) ;
 				lTkinter2Present = tryCommand(lPythonCommand);
 			}
 			else
@@ -3170,7 +3299,7 @@ static int tkinter2Present ( )
 					sprintf ( gPython2Name , "python2.%d" , i ) ;
 					if ( detectPresence(gPython2Name) )
 					{
-		sprintf ( lPythonCommand , "%s %s" , gPython2Name , lPythonParams ) ;
+						sprintf ( lPythonCommand , "%s %s" , gPython2Name , lPythonParams ) ;
 						lTkinter2Present = tryCommand(lPythonCommand);
 						break ;
 					}
@@ -3178,8 +3307,9 @@ static int tkinter2Present ( )
 			}
 		}
 	}
+	/* printf ("lTkinter2Present %d\n", lTkinter2Present) ; */
 	/* printf ("gPython2Name %s\n", gPython2Name) ; */
-	return lTkinter2Present && graphicMode ( ) ;
+    return lTkinter2Present && graphicMode() && !(isDarwin() && getenv("SSH_TTY") );
 }
 
 
@@ -3276,17 +3406,22 @@ int tinyfd_messageBox (
 		strcat ( lDialogString, "-e 'end try'") ;
 		if ( ! osx9orBetter() ) strcat ( lDialogString, " -e 'end tell'") ;
 	}
-	else if ( zenityPresent() || matedialogPresent() )
+	else if ( zenityPresent() || matedialogPresent() || qarmaPresent() )
 	{
 		if ( zenityPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return 1;}
 		  strcpy ( lDialogString , "zenity --" ) ;
 		}
-		else
+		else if ( matedialogPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return 1;}
 			strcpy ( lDialogString , "matedialog --" ) ;
+		}
+		else
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"qarma");return 1;}
+			strcpy ( lDialogString , "qarma --" ) ;
 		}
 
 		if ( aDialogType && ! strcmp( "okcancel" , aDialogType ) )
@@ -3322,7 +3457,7 @@ int tinyfd_messageBox (
 			strcat(lDialogString, aMessage) ;
 			strcat(lDialogString, "\"") ;
 		}
-		if ( zenity3Present ( ) )
+		if ( zenity3Present ( ) >= 3 )
 		{
 			strcat ( lDialogString , " --icon-name=dialog-" ) ;
 			if ( aIconType && (! strcmp( "question" , aIconType )
@@ -3389,7 +3524,7 @@ int tinyfd_messageBox (
 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"tkinter");return 1;}
 
 		strcpy ( lDialogString , gPython2Name ) ;
-		if ( ! isatty ( 1 ) && isDarwin ( ) )
+		if ( ! isTerminalRunning ( ) && isDarwin ( ) )
 		{
 		 	strcat ( lDialogString , " -i" ) ;  /* for osx without console */
 		}
@@ -3545,7 +3680,7 @@ else :\n\tprint 1\n\"" ) ;
 		else if ( dialogName ( ) )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"dialog");return 0;}
-			if ( isatty ( 1 ) )
+			if ( isTerminalRunning ( ) )
 			{
 				strcpy ( lDialogString , "(dialog " ) ;
 			}
@@ -3558,7 +3693,7 @@ else :\n\tprint 1\n\"" ) ;
 				strcat ( lDialogString , " " ) ;
 			}
 		}
-		else if ( isatty ( 1 ) )
+		else if ( isTerminalRunning ( ) )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"whiptail");return 0;}
 			strcpy ( lDialogString , "(whiptail " ) ;
@@ -3637,7 +3772,7 @@ cat /tmp/tinyfd.txt;rm /tmp/tinyfd.txt");
 			}
 		}
 	}
-	else if ( ! isatty ( 1 ) && terminalName() )
+	else if ( ! isTerminalRunning ( ) && terminalName() )
 	{
 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"basicinput");return 0;}
 		strcpy ( lDialogString , terminalName() ) ;
@@ -3645,9 +3780,6 @@ cat /tmp/tinyfd.txt;rm /tmp/tinyfd.txt");
 		if ( !gWarningDisplayed && !tinyfd_forceConsole)
 		{
 			gWarningDisplayed = 1 ;
-			strcat ( lDialogString , "echo \"" ) ;
-			strcat ( lDialogString, gAsciiArt) ;
-			strcat ( lDialogString , " \";" ) ;
 			strcat ( lDialogString , "echo \"" ) ;
 			strcat ( lDialogString, gTitle) ;
 			strcat ( lDialogString , "\";" ) ;
@@ -3670,7 +3802,7 @@ cat /tmp/tinyfd.txt;rm /tmp/tinyfd.txt");
 		if ( aDialogType && !strcmp("yesno",aDialogType) )
 		{
 			strcat ( lDialogString , "echo -n \"y/n: \"; " ) ;
-			strcat ( lDialogString , "stty raw -echo;" ) ;
+			strcat ( lDialogString , "stty sane -echo;" ) ;
 			strcat ( lDialogString ,
 				"answer=$( while ! head -c 1 | grep -i [ny];do true ;done);");
 			strcat ( lDialogString ,
@@ -3680,7 +3812,7 @@ cat /tmp/tinyfd.txt;rm /tmp/tinyfd.txt");
 		else if ( aDialogType && !strcmp("okcancel",aDialogType) )
 		{
 			strcat ( lDialogString , "echo -n \"[O]kay/[C]ancel: \"; " ) ;
-			strcat ( lDialogString , "stty raw -echo;" ) ;
+			strcat ( lDialogString , "stty sane -echo;" ) ;
 			strcat ( lDialogString ,
 				"answer=$( while ! head -c 1 | grep -i [oc];do true ;done);");
 			strcat ( lDialogString ,
@@ -3690,7 +3822,7 @@ cat /tmp/tinyfd.txt;rm /tmp/tinyfd.txt");
 		else
 		{
 			strcat(lDialogString , "echo -n \"press enter to continue \"; ");
-			strcat ( lDialogString , "stty raw -echo;" ) ;
+			strcat ( lDialogString , "stty sane -echo;" ) ;
 			strcat ( lDialogString ,
 				"answer=$( while ! head -c 1;do true ;done);echo 1");
 		}
@@ -3703,13 +3835,12 @@ cat /tmp/tinyfd.txt;rm /tmp/tinyfd.txt");
 		if ( !gWarningDisplayed && !tinyfd_forceConsole)
 		{
 			gWarningDisplayed = 1 ;
-			printf("\n\n%s", gAsciiArt);
-			printf ("\n%s\n", gTitle);
-			printf ("%s\n\n\n", gMessageUnix);
+			printf ("\n\n%s\n", gTitle);
+			printf ("%s\n\n", gMessageUnix);
 		}
  		if ( aTitle && strlen(aTitle) )
 		{
-			printf ("%s\n\n", aTitle);
+			printf ("\n%s\n", aTitle);
 		}
 
 		tcgetattr(0, &infoOri);
@@ -3724,7 +3855,7 @@ cat /tmp/tinyfd.txt;rm /tmp/tinyfd.txt");
 			{
 				if ( aMessage && strlen(aMessage) )
 				{
-					printf("%s\n",aMessage);
+					printf("\n%s\n",aMessage);
 				}
 				printf("y/n: "); fflush(stdout);
 				lChar = tolower ( getchar() ) ;
@@ -3739,7 +3870,7 @@ cat /tmp/tinyfd.txt;rm /tmp/tinyfd.txt");
 			{
 				if ( aMessage && strlen(aMessage) )
 				{
-					printf("%s\n",aMessage);
+					printf("\n%s\n",aMessage);
 				}
 				printf("[O]kay/[C]ancel: "); fflush(stdout);
 				lChar = tolower ( getchar() ) ;
@@ -3752,7 +3883,7 @@ cat /tmp/tinyfd.txt;rm /tmp/tinyfd.txt");
 		{
 			if ( aMessage && strlen(aMessage) )
 			{
-				printf("%s\n\n",aMessage);
+				printf("\n%s\n\n",aMessage);
 			}
 			printf("press enter to continue "); fflush(stdout);
 			getchar() ;
@@ -3764,7 +3895,7 @@ cat /tmp/tinyfd.txt;rm /tmp/tinyfd.txt");
 		return lResult ;
 	}
 
-	/* printf ( "lDialogString: %s\n" , lDialogString ) ; */
+	if (tinyfd_verbose) printf ( "lDialogString: %s\n" , lDialogString ) ;
 	if ( ! ( lIn = popen ( lDialogString , "r" ) ) )
 	{
 		free(lDialogString);
@@ -3853,17 +3984,22 @@ char const * tinyfd_inputBox(
 		strcat(lDialogString, "-e 'end try'") ;
 		if ( ! osx9orBetter() ) strcat(lDialogString, " -e 'end tell'") ;
 	}
-	else if ( zenityPresent() || matedialogPresent() )
+	else if ( zenityPresent() || matedialogPresent() || qarmaPresent() )
 	{
 		if ( zenityPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return (char const *)1;}
       strcpy ( lDialogString ,  "szAnswer=$(zenity --entry" ) ;
 		}
-		else
+		else if ( matedialogPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return (char const *)1;}
 			strcpy ( lDialogString ,  "szAnswer=$(matedialog --entry" ) ;
+		}
+		else
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"qarma");return (char const *)1;}
+			strcpy ( lDialogString ,  "szAnswer=$(qarma --entry" ) ;
 		}
 
 		if ( aTitle && strlen(aTitle) )
@@ -3928,7 +4064,7 @@ char const * tinyfd_inputBox(
 	{
 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"tkinter");return (char const *)1;}
 		strcpy ( lDialogString , gPython2Name ) ;
-		if ( ! isatty ( 1 ) && isDarwin ( ) )
+		if ( ! isTerminalRunning ( ) && isDarwin ( ) )
 		{
         	strcat ( lDialogString , " -i" ) ;  /* for osx without console */
 		}
@@ -4017,7 +4153,7 @@ frontmost of process \\\"Python\\\" to true' ''');");
 		else if ( dialogName ( ) )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"dialog");return (char const *)0;}
-			if ( isatty ( 1 ) )
+			if ( isTerminalRunning ( ) )
 			{
 				strcpy ( lDialogString , "(dialog " ) ;
 			}
@@ -4030,7 +4166,7 @@ frontmost of process \\\"Python\\\" to true' ''');");
 				strcat ( lDialogString , " " ) ;
 			}
 		}
-		else if ( isatty ( 1 ) )
+		else if ( isTerminalRunning ( ) )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"whiptail");return (char const *)0;}
 			strcpy ( lDialogString , "(whiptail " ) ;
@@ -4099,7 +4235,7 @@ frontmost of process \\\"Python\\\" to true' ''');");
 			}
 		}
 	}
-	else if ( ! isatty ( 1 ) && terminalName() )
+	else if ( ! isTerminalRunning ( ) && terminalName() )
 	{
 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"basicinput");return (char const *)0;}
 		lWasBasicXterm = 1 ;
@@ -4107,16 +4243,8 @@ frontmost of process \\\"Python\\\" to true' ''');");
 		strcat ( lDialogString , "'" ) ;
 		if ( !gWarningDisplayed && !tinyfd_forceConsole)
 		{
+			tinyfd_messageBox(gTitle,gMessageUnix,"ok","warning",0);
 			gWarningDisplayed = 1 ;
-			strcat ( lDialogString , "echo \"" ) ;
-			strcat ( lDialogString, gAsciiArt) ;
-			strcat ( lDialogString , "\";" ) ;
-			strcat ( lDialogString , "echo \"" ) ;
-			strcat ( lDialogString, gTitle) ;
-			strcat ( lDialogString , "\";" ) ;
-			strcat ( lDialogString , "echo \"" ) ;
-			strcat ( lDialogString, gMessageUnix) ;
-			strcat ( lDialogString , "\";echo;echo;" ) ;
 		}
 		if ( aTitle && strlen(aTitle) && !tinyfd_forceConsole)
 		{
@@ -4145,18 +4273,16 @@ frontmost of process \\\"Python\\\" to true' ''');");
 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"basicinput");return (char const *)0;}
 		if ( !gWarningDisplayed && !tinyfd_forceConsole)
 		{
+			tinyfd_messageBox(gTitle,gMessageUnix,"ok","warning",0);
 			gWarningDisplayed = 1 ;
-			printf ("\n\n%s", gAsciiArt);
-			printf ("\n%s\n", gTitle);
-			printf ("%s\n\n\n", gMessageUnix);
 		}
 		if ( aTitle && strlen(aTitle) )
 		{
-			printf ("%s\n\n", aTitle);
+			printf ("\n%s\n", aTitle);
 		}
 		if ( aMessage && strlen(aMessage) )
 		{
-			printf("%s\n",aMessage);
+			printf("\n%s\n",aMessage);
 		}
 		printf("(esc+enter to cancel): "); fflush(stdout);
 		if ( ! aDefaultInput )
@@ -4205,7 +4331,7 @@ frontmost of process \\\"Python\\\" to true' ''');");
 		return lBuff ;
 	}
 
-	/* printf ( "lDialogString: %s\n" , lDialogString ) ; */
+	if (tinyfd_verbose) printf ( "lDialogString: %s\n" , lDialogString ) ;
 	lIn = popen ( lDialogString , "r" );
 	if ( ! lIn  )
 	{
@@ -4317,17 +4443,23 @@ char const * tinyfd_saveFileDialog (
 		strcat(lDialogString, "-e 'end try'") ;
 		if ( ! osx9orBetter() ) strcat ( lDialogString, " -e 'end tell'") ;
 	}
-  else if ( zenityPresent() || matedialogPresent() )
+  else if ( zenityPresent() || matedialogPresent() || qarmaPresent() )
   {
 		if ( zenityPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return (char const *)1;}
       strcpy ( lDialogString , "zenity" ) ;
 		}
-		else
+		else if ( matedialogPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return (char const *)1;}
 			strcpy ( lDialogString , "matedialog" ) ;
+
+		}
+		else
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"qarma");return (char const *)1;}
+			strcpy ( lDialogString , "qarma" ) ;
 
 		}
 		strcat(lDialogString, " --file-selection --save --confirm-overwrite" ) ;
@@ -4400,7 +4532,7 @@ char const * tinyfd_saveFileDialog (
   {
 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"tkinter");return (char const *)1;}
 		strcpy ( lDialogString , gPython2Name ) ;
-		if ( ! isatty ( 1 ) && isDarwin ( ))
+		if ( ! isTerminalRunning ( ) && isDarwin ( ))
 		{
         	strcat ( lDialogString , " -i" ) ;  /* for osx without console */
 		}
@@ -4468,7 +4600,7 @@ char const * tinyfd_saveFileDialog (
 			lWasGraphicDialog = 1 ;
 			strcpy ( lDialogString , "(Xdialog " ) ;
 		}
-		else if ( isatty ( 1 ) )
+		else if ( isTerminalRunning ( ) )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"dialog");return (char const *)0;}
 			strcpy ( lDialogString , "@echo lala;(dialog " ) ;
@@ -4507,7 +4639,7 @@ char const * tinyfd_saveFileDialog (
 			}
 			strcat(lDialogString, aDefaultPathAndFile) ;
 		}
-		else if ( ! isatty ( 1 ) && !lWasGraphicDialog )
+		else if ( ! isTerminalRunning ( ) && !lWasGraphicDialog )
 		{
 			strcat(lDialogString, getenv("HOME")) ;
 			strcat(lDialogString, "/") ;
@@ -4552,7 +4684,7 @@ char const * tinyfd_saveFileDialog (
 		return p ;
 	}
 
-	/* printf ( "lDialogString: %s\n" , lDialogString ) ; */
+	if (tinyfd_verbose) printf ( "lDialogString: %s\n" , lDialogString ) ;
     if ( ! ( lIn = popen ( lDialogString , "r" ) ) )
     {
         return NULL ;
@@ -4668,17 +4800,22 @@ char const * tinyfd_openFileDialog (
 		strcat(lDialogString, "-e 'end try'") ;
 		if ( ! osx9orBetter() ) strcat ( lDialogString, " -e 'end tell'") ;
 	}
-  else if ( zenityPresent() || matedialogPresent() )
+  else if ( zenityPresent() || matedialogPresent() || qarmaPresent() )
   {
 		if ( zenityPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return (char const *)1;}
       strcpy ( lDialogString , "zenity --file-selection" ) ;
 		}
-		else
+		else if ( matedialogPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return (char const *)1;}
 			strcpy ( lDialogString , "matedialog --file-selection" ) ;
+		}
+		else
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"qarma");return (char const *)1;}
+			strcpy ( lDialogString , "qarma --file-selection" ) ;
 		}
 
 		if ( aAllowMultipleSelects )
@@ -4759,7 +4896,7 @@ char const * tinyfd_openFileDialog (
   {
 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"tkinter");return (char const *)1;}
 		strcpy ( lDialogString , gPython2Name ) ;
-		if ( ! isatty ( 1 ) && isDarwin ( ) )
+		if ( ! isTerminalRunning ( ) && isDarwin ( ) )
 		{
         	strcat ( lDialogString , " -i" ) ;  /* for osx without console */
 		}
@@ -4833,7 +4970,7 @@ frontmost of process \\\"Python\\\" to true' ''');");
 			lWasGraphicDialog = 1 ;
 			strcpy ( lDialogString , "(Xdialog " ) ;
 		}
-		else if ( isatty ( 1 ) )
+		else if ( isTerminalRunning ( ) )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"dialog");return (char const *)0;}
 			strcpy ( lDialogString , "(dialog " ) ;
@@ -4872,7 +5009,7 @@ frontmost of process \\\"Python\\\" to true' ''');");
 			}
 			strcat(lDialogString, aDefaultPathAndFile) ;
 		}
-		else if ( ! isatty ( 1 ) && !lWasGraphicDialog )
+		else if ( ! isTerminalRunning ( ) && !lWasGraphicDialog )
 		{
 			strcat(lDialogString, getenv("HOME")) ;
 			strcat(lDialogString, "/");
@@ -4911,7 +5048,7 @@ frontmost of process \\\"Python\\\" to true' ''');");
 		return p2 ;
 	}
 
-     /* printf ( "lDialogString: %s\n" , lDialogString ) ; */
+    if (tinyfd_verbose) printf ( "lDialogString: %s\n" , lDialogString ) ;
     if ( ! ( lIn = popen ( lDialogString , "r" ) ) )
     {
         return NULL ;
@@ -4992,17 +5129,22 @@ char const * tinyfd_selectFolderDialog (
 		strcat(lDialogString, "-e 'end try'") ;
 		if ( ! osx9orBetter() ) strcat ( lDialogString, " -e 'end tell'") ;
 	}
-  else if ( zenityPresent() || matedialogPresent() )
+  else if ( zenityPresent() || matedialogPresent() || qarmaPresent() )
   {
 		if ( zenityPresent() )
 		{
 	 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return (char const *)1;}
 			strcpy ( lDialogString , "zenity --file-selection --directory" ) ;
 		}
-		else
+		else if ( matedialogPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return (char const *)1;}
 			strcpy ( lDialogString , "matedialog --file-selection --directory" ) ;
+		}
+		else
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"qarma");return (char const *)1;}
+			strcpy ( lDialogString , "qarma --file-selection --directory" ) ;
 		}
 
 		if ( aTitle && strlen(aTitle) ) 
@@ -5043,7 +5185,7 @@ char const * tinyfd_selectFolderDialog (
 	{
 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"tkinter");return (char const *)1;}
 		strcpy ( lDialogString , gPython2Name ) ;
-		if ( ! isatty ( 1 ) && isDarwin ( ) )
+		if ( ! isTerminalRunning ( ) && isDarwin ( ) )
 		{
         	strcat ( lDialogString , " -i" ) ;  /* for osx without console */
 		}
@@ -5080,7 +5222,7 @@ frontmost of process \\\"Python\\\" to true' ''');");
 			lWasGraphicDialog = 1 ;
 			strcpy ( lDialogString , "(Xdialog " ) ;
 		}
-		else if ( isatty ( 1 ) )
+		else if ( isTerminalRunning ( ) )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"dialog");return (char const *)0;}
 			strcpy ( lDialogString , "(dialog " ) ;
@@ -5116,7 +5258,7 @@ frontmost of process \\\"Python\\\" to true' ''');");
 			strcat(lDialogString, aDefaultPath) ;
 			ensureFinalSlash(lDialogString);
 		}
-		else if ( ! isatty ( 1 ) && !lWasGraphicDialog )
+		else if ( ! isTerminalRunning ( ) && !lWasGraphicDialog )
 		{
 			strcat(lDialogString, getenv("HOME")) ;
 			strcat(lDialogString, "/");
@@ -5154,7 +5296,7 @@ frontmost of process \\\"Python\\\" to true' ''');");
 		}
 		return p ;
 	}
-    /* printf ( "lDialogString: %s\n" , lDialogString ) ; */
+    if (tinyfd_verbose) printf ( "lDialogString: %s\n" , lDialogString ) ;
     if ( ! ( lIn = popen ( lDialogString , "r" ) ) )
     {
         return NULL ;
@@ -5252,7 +5394,7 @@ to set mycolor to choose color default color {");
 		strcat(lDialogString, "-e 'end try'") ;
 		if ( ! osx9orBetter() ) strcat ( lDialogString, " -e 'end tell'") ;
 	}
-	else if ( zenity3Present() || matedialogPresent() )
+	else if ( zenity3Present() || matedialogPresent() || qarmaPresent() )
 	{
 		lWasZenity3 = 1 ;
 		if ( zenity3Present() )
@@ -5261,11 +5403,17 @@ to set mycolor to choose color default color {");
 			sprintf ( lDialogString ,
 "zenity --color-selection --show-palette --color=%s" , lpDefaultHexRGB ) ;
 		}
-		else
+		else if ( matedialogPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return (char const *)1;}
 			sprintf ( lDialogString ,
 "matedialog --color-selection --show-palette --color=%s" , lpDefaultHexRGB ) ;
+		}
+		else
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"qarma");return (char const *)1;}
+			sprintf ( lDialogString ,
+"qarma --color-selection --show-palette --color=%s" , lpDefaultHexRGB ) ;
 		}
 
 		if ( aTitle && strlen(aTitle) ) 
@@ -5306,7 +5454,7 @@ to set mycolor to choose color default color {");
 	{
 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"tkinter");return (char const *)1;}
 		strcpy ( lDialogString , gPython2Name ) ;
-		if ( ! isatty ( 1 ) && isDarwin ( ) )
+		if ( ! isTerminalRunning ( ) && isDarwin ( ) )
 		{
         	strcat ( lDialogString , " -i" ) ;  /* for osx without console */
 		}
@@ -5355,7 +5503,7 @@ frontmost of process \\\"Python\\\" to true' ''');");
 		return p ;
 	}
 
-	/* printf ( "lDialogString: %s\n" , lDialogString ) ; */
+	if (tinyfd_verbose) printf ( "lDialogString: %s\n" , lDialogString ) ;
 	if ( ! ( lIn = popen ( lDialogString , "r" ) ) )
 	{
 		return NULL ;
@@ -5466,7 +5614,7 @@ char const * tinyfd_arrayDialog (
 		return NULL ;
 	}
 
-	/* printf ( "lDialogString: %s\n" , lDialogString ) ; */
+	if (tinyfd_verbose) printf ( "lDialogString: %s\n" , lDialogString ) ;
 	if ( ! ( lIn = popen ( lDialogString , "r" ) ) )
 	{
 		return NULL ;
@@ -5521,10 +5669,9 @@ tinyfd_messageBox(lThePassword, lBuffer, "ok", "info", 0);
 
 if (lWillBeGraphicMode && !tinyfd_forceConsole)
 {
-	tinyfd_forceConsole = tinyfd_messageBox("Hello World",
-		"force dialogs into console mode?\
-						\n\t(it is better if dialog is installed)",
-						"yesno", "question", 0);
+	tinyfd_forceConsole = ! tinyfd_messageBox("Hello World",
+		"graphic dialogs [yes] / console mode [no]?",
+		"yesno", "question", 1);
 }
 
 lTmp = tinyfd_inputBox(
