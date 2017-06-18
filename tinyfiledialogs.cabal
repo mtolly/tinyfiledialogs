@@ -5,7 +5,7 @@ license:              BSD3
 license-file:         LICENSE
 author:               Guillaume Vareille (C lib), Michael Tolly (hs)
 maintainer:           miketolly@gmail.com
-copyright:            2017 Michael Tolly
+copyright:            2014 - 2017 Guillaume Vareille, Michael Tolly
 category:             GUI
 build-type:           Simple
 extra-source-files:
