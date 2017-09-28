@@ -1,12 +1,12 @@
 module Graphics.UI.TinyFileDialogs
-( DialogType(..)
-, IconType(..)
-, messageBox
+( messageBox
 , inputBox
 , saveFileDialog
 , openFileDialog
 , selectFolderDialog
 , colorChooser
+, DialogType(..)
+, IconType(..)
 ) where
 
 import           Data.Char          (toLower)
@@ -45,7 +45,6 @@ peekMaybeText :: CString -> IO (Maybe T.Text)
 peekMaybeText cstr = if cstr == nullPtr
   then return Nothing
 #ifdef WINDOWS
-  -- TODO unicode: see encoding notes in inputBoxWinGui
   else fmap (Just . TE.decodeUtf8) $ B.packCString cstr
 #else
   else fmap (Just . T.pack) $ peekCString cstr

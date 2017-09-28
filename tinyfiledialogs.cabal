@@ -3,7 +3,7 @@ version:              0.1.0.0
 homepage:             https://github.com/mtolly/tinyfiledialogs
 license:              BSD3
 license-file:         LICENSE
-author:               Guillaume Vareille (C lib), Michael Tolly (hs)
+author:               Guillaume Vareille, Don Heyse, Michael Tolly
 maintainer:           miketolly@gmail.com
 copyright:            2014 - 2017 Guillaume Vareille, Michael Tolly
 category:             GUI
@@ -30,7 +30,9 @@ description:
   .
   * color picker
   .
-  This package bundles the C library and provides a complete Haskell interface.
+  This package bundles the C library (currently v3.0.8)
+  and provides a complete Haskell interface.
+  Proper Unicode support has been tested on Windows, Mac and Linux.
 
 library
   hs-source-dirs:       src
