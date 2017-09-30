@@ -1,12 +1,18 @@
 module Graphics.UI.TinyFileDialogs
-( messageBox
+( -- * The functions
+  messageBox
 , inputBox
 , saveFileDialog
 , openFileDialog
 , selectFolderDialog
 , colorChooser
-, DialogType(..)
+  -- * Message box options
 , IconType(..)
+, MessageBox
+, OK(..)
+, OKCancel(..)
+, YesNo(..)
+, YesNoCancel(..)
 ) where
 
 import           Data.Char          (toLower)
@@ -57,20 +63,66 @@ withCTexts :: [T.Text] -> ((CInt, Ptr CString) -> IO a) -> IO a
 withCTexts ts f = withMany withCText ts $ \ptrs ->
   withArrayLen ptrs $ \len ptr -> f (fromIntegral len, ptr)
 
-data DialogType = OK | OKCancel | YesNo
-  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+class (Enum a, Bounded a) => MessageBox a where
+  messageBoxType :: a -> T.Text
+  messageBoxValue :: a -> Int
 
 data IconType = Info | Warning | Error | Question
   deriving (Eq, Ord, Show, Read, Enum, Bounded)
 
-{#fun messageBox
+data OK = OK
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+
+instance MessageBox OK where
+  messageBoxType _ = T.pack "ok"
+  messageBoxValue OK = 1
+
+data OKCancel = OC_OK | OC_Cancel
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+
+instance MessageBox OKCancel where
+  messageBoxType _ = T.pack "okcancel"
+  messageBoxValue OC_Cancel = 0
+  messageBoxValue OC_OK     = 1
+
+data YesNo = YN_Yes | YN_No
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+
+instance MessageBox YesNo where
+  messageBoxType _ = T.pack "yesno"
+  messageBoxValue YN_No  = 0
+  messageBoxValue YN_Yes = 1
+
+data YesNoCancel = YNC_Yes | YNC_No | YNC_Cancel
+  deriving (Eq, Ord, Show, Read, Enum, Bounded)
+
+instance MessageBox YesNoCancel where
+  messageBoxType _ = T.pack "yesnocancel"
+  messageBoxValue YNC_Cancel = 0
+  messageBoxValue YNC_Yes    = 1
+  messageBoxValue YNC_No     = 2
+
+{#fun messageBox as c_messageBox
   { withCText*      `T.Text'     -- ^ title
   , withCText*      `T.Text'     -- ^ message, may contain @\\n@ and @\\t@
-  , withCShowLower* `DialogType'
+  , withCText*      `T.Text'     -- ^ "ok" "okcancel" "yesno" "yesnocancel"
   , withCShowLower* `IconType'
-  ,                 `Bool'       -- ^ default button: 'False' for cancel\/no, 'True' for ok\/yes
-  } -> `Bool' -- ^ 'False' for cancel\/no, 'True' for ok/yes
+  ,                 `Int'        -- ^ default button: 0 for cancel/no, 1 for ok/yes, 2 for no in yesnocancel
+  } -> `Int' -- ^ 0 for cancel/no, 1 for ok/yes, 2 for no in yesnocancel
 #}
+
+messageBox
+  :: (MessageBox a)
+  => T.Text -- ^ title
+  -> T.Text -- ^ message, may contain @\\n@ and @\\t@
+  -> IconType
+  -> a -- ^ default button
+  -> IO a
+messageBox ttl msg icon dflt = do
+  n <- c_messageBox ttl msg (messageBoxType dflt) icon (messageBoxValue dflt)
+  case lookup n [ (messageBoxValue x, x) | x <- [minBound .. maxBound] ] of
+    Just x  -> return x
+    Nothing -> error $ "Graphics.UI.TinyFileDialogs.messageBox: internal error; unrecognized return value " ++ show n
 
 {#fun inputBox
   { withCText*      `T.Text'       -- ^ title
