@@ -30,7 +30,7 @@ description:
   .
   * color picker
   .
-  This package bundles the C library (currently v3.0.8)
+  This package bundles the C library (currently v3.0.9)
   and provides a complete Haskell interface.
   Proper Unicode support has been tested on Windows, Mac and Linux.
 

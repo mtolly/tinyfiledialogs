@@ -1,5 +1,5 @@
 /*_________
- /         \ tinyfiledialogs.c v3.0.8 [Sep 28, 2017] zlib licence
+ /         \ tinyfiledialogs.c v3.0.9 [Sep 29, 2017] zlib licence
  |tiny file| Unique code file created [November 9, 2014]
  | dialogs | Copyright (c) 2014 - 2017 Guillaume Vareille http://ysengrin.com
  \____  ___/ http://tinyfiledialogs.sourceforge.net
@@ -17,8 +17,9 @@
 A big thank you to Don Heyse http://ldglite.sf.net for
                    his code contributions, bug corrections & thorough testing!
 		
-Please 1) let me know If you are using it on different hardware / OS / compiler
-       2) leave a very short review on Sourceforge. It helps the ranking in google.
+Please 1) Let me know If you are using it on exotic hardware / OS / compiler
+       2) If yo have a sourceforge account, leave a 3-word review on Sourceforge.
+          It helps the ranking on google.
 
 tiny file dialogs (cross-platform C C++)
 InputBox PasswordBox MessageBox ColorPicker
@@ -65,8 +66,8 @@ on VisualStudio MinGW Mac Linux Bsd Solaris Minix Raspbian
 using Gnome Kde Enlightenment Mate Cinnamon Unity
 Lxde Lxqt Xfce WindowMaker IceWm Cde Jds OpenBox Awesome Jwm
 
-bindings for LUA and C# dll
-included in LWJGL(java), rust, Allegrobasic
+bindings for LUA and C# dll, Haskell
+included in LWJGL(java), Rust, Allegrobasic
 
 - License -
 
@@ -124,7 +125,7 @@ misrepresented as being the original software.
 #define MAX_PATH_OR_CMD 1024 /* _MAX_PATH or MAX_PATH */
 #define MAX_MULTIPLE_FILES 32
 
-char tinyfd_version [8] = "3.0.8";
+char tinyfd_version [8] = "3.0.9";
 
 static int tinyfd_verbose = 0 ; /* print on unix the command line calls */
 
@@ -146,7 +147,7 @@ but and return 0 for console mode, 1 for graphic mode.
 tinyfd_response is then filled with the retain solution.
 possible values for tinyfd_response are (all lowercase)
 for the graphic mode:
-  windows applescript zenity zenity3 matedialog qarma kdialog
+  windows_wchar windows applescript zenity zenity3 matedialog qarma kdialog
   tkinter gxmessage gmessage xmessage xdialog gdialog
 for the console mode:
   dialog whiptail basicinput */
@@ -366,6 +367,7 @@ static int filenameValid( char const * const aFileNameWithoutPath )
 	return 1 ;
 }
 
+#ifndef _WIN32
 
 static int fileExists( char const * const aFilePathAndName )
 {
@@ -383,52 +385,29 @@ static int fileExists( char const * const aFilePathAndName )
 	return 1 ;
 }
 
+#elif defined(TINYFD_NOLIB)
 
-/* source and destination can be the same or ovelap*/
-static char const * ensureFilesExist( char * const aDestination ,
-							 		  char const * const aSourcePathsAndNames)
+static int fileExists( char const * const aFilePathAndName )
 {
-	char * lDestination = aDestination ;
-	char const * p ;
-	char const * p2 ;
-	int lLen ;
+	FILE * lIn ;
+	if ( ! aFilePathAndName || ! strlen(aFilePathAndName) )
+	{
+		return 0 ;
+	}
 
-	if ( ! aSourcePathsAndNames )
+	if ( tinyfd_winUtf8 )
+		return 1; /* we cannot test */
+
+	lIn = fopen( aFilePathAndName , "r" ) ;
+	if ( ! lIn )
 	{
-		return NULL ;
+		return 0 ;
 	}
-	lLen = strlen( aSourcePathsAndNames ) ;
-	if ( ! lLen )
-	{
-		return NULL ;
-	}
-	
-	p = aSourcePathsAndNames ;
-	while ( (p2 = strchr(p, '|')) != NULL )
-	{
-		lLen = p2-p ;		
-		memmove(lDestination,p,lLen);
-		lDestination[lLen] = '\0';
-		if ( fileExists( lDestination ) )
-		{
-			lDestination += lLen ;
-			* lDestination = '|';
-			lDestination ++ ;
-		}
-		p = p2 + 1 ;
-	}
-	if ( fileExists( p ) )
-	{
-		lLen = strlen(p) ;		
-		memmove(lDestination,p,lLen);
-		lDestination[lLen] = '\0';
-	}
-	else
-	{
-		* (lDestination-1) = '\0';
-	}
-	return aDestination ;
+	fclose( lIn ) ;
+	return 1 ;
 }
+
+#endif
 
 
 static void wipefile(char const * const aFilename)
@@ -754,6 +733,94 @@ static int dirExists(char const * const aDirPath)
 }
 
 
+static int fileExists(char const * const aFilePathAndName)
+{
+	struct _stat lInfo;
+	wchar_t * lTmpWChar;
+	int lStatRet;
+	FILE * lIn;
+
+	if (!aFilePathAndName || !strlen(aFilePathAndName))
+	{
+		return 0;
+	}
+
+	if (tinyfd_winUtf8)
+	{
+		lTmpWChar = utf8to16(aFilePathAndName);
+		lStatRet = _wstat(lTmpWChar, &lInfo);
+		free(lTmpWChar);
+		if (lStatRet != 0)
+			return 0;
+		else if (lInfo.st_mode & _S_IFREG)
+			return 1;
+		else
+			return 0;
+	}
+	else
+	{
+		lIn = fopen(aFilePathAndName, "r");
+		if (!lIn)
+		{
+			return 0;
+		}
+		fclose(lIn);
+		return 1;
+	}
+}
+
+#endif /* TINYFD_NOLIB */
+#endif /* _WIN32 */
+
+/* source and destination can be the same or ovelap*/
+static char const * ensureFilesExist(char * const aDestination,
+	char const * const aSourcePathsAndNames)
+{
+	char * lDestination = aDestination;
+	char const * p;
+	char const * p2;
+	int lLen;
+
+	if (!aSourcePathsAndNames)
+	{
+		return NULL;
+	}
+	lLen = strlen(aSourcePathsAndNames);
+	if (!lLen)
+	{
+		return NULL;
+	}
+
+	p = aSourcePathsAndNames;
+	while ((p2 = strchr(p, '|')) != NULL)
+	{
+		lLen = p2 - p;
+		memmove(lDestination, p, lLen);
+		lDestination[lLen] = '\0';
+		if (fileExists(lDestination))
+		{
+			lDestination += lLen;
+			*lDestination = '|';
+			lDestination++;
+		}
+		p = p2 + 1;
+	}
+	if (fileExists(p))
+	{
+		lLen = strlen(p);
+		memmove(lDestination, p, lLen);
+		lDestination[lLen] = '\0';
+	}
+	else
+	{
+		*(lDestination - 1) = '\0';
+	}
+	return aDestination;
+}
+
+#ifdef _WIN32
+#ifndef TINYFD_NOLIB
+
 static int __stdcall EnumThreadWndProc(HWND hwnd, LPARAM lParam)
 { 
 	wchar_t lTitleName[MAX_PATH];
@@ -842,7 +909,7 @@ int tinyfd_messageBoxW(
 	int lBoxReturnValue;
 	UINT aCode;
 
-	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windowsW"); return 1; }
+	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windows_wchar"); return 1; }
 
 	if (aIconType && !wcscmp(L"warning", aIconType))
 	{
@@ -943,7 +1010,7 @@ wchar_t const * tinyfd_inputBoxW(
 	int lMessageLen;
 	int lDialogStringLen;
 
-	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windowsW"); return (wchar_t const *)1; }
+	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windows_wchar"); return (wchar_t const *)1; }
 
 	lTitleLen =  aTitle ? wcslen(aTitle) : 0 ;
 	lMessageLen =  aMessage ? wcslen(aMessage) : 0 ;
@@ -1279,7 +1346,7 @@ wchar_t const * tinyfd_saveFileDialogW(
 	HRESULT lHResult;
 	OPENFILENAMEW ofn = {0};
 
-	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windowsW"); return (wchar_t const *)1; }
+	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windows_wchar"); return (wchar_t const *)1; }
 
 	lHResult = CoInitializeEx(NULL, 0);
 
@@ -1430,7 +1497,7 @@ wchar_t const * tinyfd_openFileDialogW(
 	HRESULT lHResult;
 	OPENFILENAMEW ofn = { 0 };
 
-	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windowsW"); return (wchar_t const *)1; }
+	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windows_wchar"); return (wchar_t const *)1; }
 
 	lHResult = CoInitializeEx(NULL, 0);
 
@@ -1625,7 +1692,7 @@ wchar_t const * tinyfd_selectFolderDialogW(
 	LPITEMIDLIST lpItem;
 	HRESULT lHResult;
 
-	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windowsW"); return (wchar_t const *)1; }
+	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windows_wchar"); return (wchar_t const *)1; }
 
 	lHResult = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
@@ -1702,7 +1769,7 @@ wchar_t const * tinyfd_colorChooserW(
 
 	HRESULT lHResult;
 
-	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windowsW"); return (wchar_t const *)1; }
+	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windows_wchar"); return (wchar_t const *)1; }
 
 	lHResult = CoInitializeEx(NULL, 0);
 
@@ -2909,8 +2976,7 @@ char const * tinyfd_openFileDialog(
 	}
 	if ( aAllowMultipleSelects && strchr(p, '|') )
 	{
-		// MT: removing this because it doesn't work for non-ascii filenames on Windows
-		// p = ensureFilesExist( lBuff , p ) ;
+		p = ensureFilesExist( lBuff , p ) ;
 	}
 	else if ( ! fileExists(p) )
 	{

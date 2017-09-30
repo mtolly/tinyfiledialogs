@@ -1,5 +1,5 @@
 /*_________
- /         \ tinyfiledialogs.h v3.0.8 [Sep 28, 2017] zlib licence
+ /         \ tinyfiledialogs.h v3.0.9 [Sep 29, 2017] zlib licence
  |tiny file| Unique header file created [November 9, 2014]
  | dialogs | Copyright (c) 2014 - 2017 Guillaume Vareille http://ysengrin.com
  \____  ___/ http://tinyfiledialogs.sourceforge.net
@@ -17,8 +17,9 @@
 A big thank you to Don Heyse http://ldglite.sf.net for
                    his code contributions, bug corrections & thorough testing!
 
-Please 1) let me know If you are using it on different hardware / OS / compiler
-       2) leave a very short review on Sourceforge. It helps the ranking in google.
+Please 1) Let me know If you are using it on exotic hardware / OS / compiler
+       2) If yo have a sourceforge account, leave a 3-word review on Sourceforge.
+          It helps the ranking on google.
 
 tiny file dialogs (cross-platform C C++)
 InputBox PasswordBox MessageBox ColorPicker
@@ -65,8 +66,8 @@ on VisualStudio MinGW Mac Linux Bsd Solaris Minix Raspbian
 using Gnome Kde Enlightenment Mate Cinnamon Unity
 Lxde Lxqt Xfce WindowMaker IceWm Cde Jds OpenBox Awesome Jwm
 
-bindings for LUA and C# dll
-included in LWJGL(java), rust, Allegrobasic
+bindings for LUA and C# dll, Haskell
+included in LWJGL(java), Rust, Allegrobasic
 
 - License -
 
@@ -129,7 +130,7 @@ but will return 0 for console mode, 1 for graphic mode.
 tinyfd_response is then filled with the retain solution.
 possible values for tinyfd_response are (all lowercase)
 for the graphic mode:
-  windows applescript zenity zenity3 matedialog qarma kdialog
+  windows_wchar windows applescript zenity zenity3 matedialog qarma kdialog
   xdialog tkinter gdialog gxmessage xmessage
 for the console mode:
   dialog whiptail basicinput */
