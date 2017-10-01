@@ -10,6 +10,7 @@ category:             GUI
 build-type:           Simple
 extra-source-files:
   README.md
+  changelog.md
   cbits/tinyfiledialogs.h
 cabal-version:        >= 1.10
 synopsis:             Wrapper around the 'tiny file dialogs' C library
