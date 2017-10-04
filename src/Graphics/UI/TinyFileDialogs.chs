@@ -1,6 +1,7 @@
 module Graphics.UI.TinyFileDialogs
 ( -- * The functions
   messageBox
+, notifyPopup
 , inputBox
 , saveFileDialog
 , openFileDialog
@@ -105,17 +106,24 @@ instance MessageBox YesNoCancel where
 {#fun messageBox as c_messageBox
   { withCText*      `T.Text'     -- ^ title
   , withCText*      `T.Text'     -- ^ message, may contain @\\n@ and @\\t@
-  , withCText*      `T.Text'     -- ^ "ok" "okcancel" "yesno" "yesnocancel"
-  , withCShowLower* `IconType'
+  , withCText*      `T.Text'     -- ^ @"ok" "okcancel" "yesno" "yesnocancel"@
+  , withCShowLower* `IconType'   -- ^ 'Info', 'Warning', 'Error', 'Question'
   ,                 `Int'        -- ^ default button: 0 for cancel/no, 1 for ok/yes, 2 for no in yesnocancel
   } -> `Int' -- ^ 0 for cancel/no, 1 for ok/yes, 2 for no in yesnocancel
+#}
+
+{#fun notifyPopup
+  { withCText*      `T.Text'   -- ^ title
+  , withCText*      `T.Text'   -- ^ message, may contain @\\n@ and @\\t@
+  , withCShowLower* `IconType' -- ^ 'Info', 'Warning', 'Error'
+  } -> `()'
 #}
 
 messageBox
   :: (MessageBox a)
   => T.Text -- ^ title
   -> T.Text -- ^ message, may contain @\\n@ and @\\t@
-  -> IconType
+  -> IconType -- ^ 'Info', 'Warning', 'Error', 'Question'
   -> a -- ^ default button
   -> IO a
 messageBox ttl msg icon dflt = do

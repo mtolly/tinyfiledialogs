@@ -21,6 +21,8 @@ description:
   .
   * message & question
   .
+  * notify
+  .
   * input & password
   .
   * save file
@@ -31,7 +33,7 @@ description:
   .
   * color picker
   .
-  This package bundles the C library (currently v3.0.9)
+  This package bundles the C library (currently v3.1.2)
   and provides a complete Haskell interface.
   Proper Unicode support has been tested on Windows, Mac and Linux.
 
