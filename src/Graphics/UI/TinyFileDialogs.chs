@@ -1,7 +1,8 @@
 module Graphics.UI.TinyFileDialogs
 ( -- * The functions
-  messageBox
+  beep
 , notifyPopup
+, messageBox
 , inputBox
 , saveFileDialog
 , openFileDialog
@@ -118,6 +119,8 @@ instance MessageBox YesNoCancel where
   , withCShowLower* `IconType' -- ^ 'Info', 'Warning', 'Error'
   } -> `()'
 #}
+
+{#fun beep {} -> `()' #}
 
 messageBox
   :: (MessageBox a)
