@@ -1,11 +1,11 @@
 /*_________
- /         \ tinyfiledialogs.h v3.2.3 [Nov 2, 2017] zlib licence
+ /         \ tinyfiledialogs.h v3.2.9 [Feb 1, 2018] zlib licence
  |tiny file| Unique header file created [November 9, 2014]
- | dialogs | Copyright (c) 2014 - 2017 Guillaume Vareille http://ysengrin.com
+ | dialogs | Copyright (c) 2014 - 2018 Guillaume Vareille http://ysengrin.com
  \____  ___/ http://tinyfiledialogs.sourceforge.net
       \|
-             git://git.code.sf.net/p/tinyfiledialogs/code
-         ____________________________________________
+		git://git.code.sf.net/p/tinyfiledialogs/code
+		 ____________________________________________
 		|                                            |
 		|   email: tinyfiledialogs at ysengrin.com   |
 		|____________________________________________|
@@ -16,9 +16,9 @@
 
 A big thank you to Don Heyse http://ldglite.sf.net for bug corrections & thorough testing!
 
-Please 1) Let me know If you are using it on exotic hardware / OS / compiler
-       2) If yo have a sourceforge account, leave a 3-word review on Sourceforge.
-          It helps the ranking on google.
+Please 1) let me know If you are using it on exotic hardware / OS / compiler
+       2) if you have a sourceforge account, leave a 1-word review on Sourceforge.
+	   3) leave an upvote to my stackoverflow answer https://stackoverflow.com/a/47651444
 
 tiny file dialogs (cross-platform C C++)
 InputBox PasswordBox MessageBox ColorPicker
@@ -288,7 +288,7 @@ char const * tinyfd_arrayDialog(
 - the windows only wchar_t (utf-16) prototypes are in the header file
 - windows is fully supported from XP to 10 (maybe even older versions)
 - C# & LUA via dll, see example files
-- OSX supported from 10.4 to 10.11 (maybe even older versions)
+- OSX supported from 10.4 to latest (maybe even older versions)
 - Avoid using " and ' in titles and messages.
 - There's one file filter only, it may contain several patterns.
 - If no filter description is provided,
@@ -298,9 +298,10 @@ char const * tinyfd_arrayDialog(
 - On windows link against Comdlg32.lib and Ole32.lib
   This linking is not compulsary for console mode (see above).
 - On unix: it tries command line calls, so no such need.
-- On unix you need applescript, kdialog, zenity, matedialog, qarma,
-  python (2 or 3)/tkinter/python-dbus (optional),
-  Xdialog or dialog (opens terminal if running without console).
+- On unix you need one of the following:
+  applescript, kdialog, zenity, matedialog, shellementary, qarma,
+  python (2 or 3)/tkinter/python-dbus (optional), Xdialog
+  or dialog (opens terminal if running without console) or xterm.
 - One of those is already included on most (if not all) desktops.
 - In the absence of those it will use gdialog, gxmessage or whiptail
   with a textinputbox.
@@ -317,7 +318,8 @@ char const * tinyfd_arrayDialog(
 - Mutiple selects are not allowed in console mode.
 - The package dialog must be installed to run in enhanced console mode.
   It is already installed on most unix systems.
-- On osx, the package dialog can be installed via http://macports.org
+- On osx, the package dialog can be installed via
+  http://macappstore.org/dialog or http://macports.org
 - On windows, for enhanced console mode,
   dialog.exe should be copied somewhere on your executable path.
   It can be found at the bottom of the following page:

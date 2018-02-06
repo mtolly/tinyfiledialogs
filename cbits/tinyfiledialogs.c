@@ -1,11 +1,11 @@
 /*_________
- /         \ tinyfiledialogs.c v3.2.3 [Nov 2, 2017] zlib licence
+ /         \ tinyfiledialogs.c v3.2.9 [Feb 1, 2018] zlib licence
  |tiny file| Unique code file created [November 9, 2014]
- | dialogs | Copyright (c) 2014 - 2017 Guillaume Vareille http://ysengrin.com
+ | dialogs | Copyright (c) 2014 - 2018 Guillaume Vareille http://ysengrin.com
  \____  ___/ http://tinyfiledialogs.sourceforge.net
       \|
-             git://git.code.sf.net/p/tinyfiledialogs/code
-         ____________________________________________
+		git://git.code.sf.net/p/tinyfiledialogs/code
+		 ____________________________________________
 		|                                            |
 		|   email: tinyfiledialogs at ysengrin.com   |
 		|____________________________________________|
@@ -18,9 +18,9 @@ A big thank you for contributions, bug corrections & thorough testing to:
 - Don Heyse http://ldglite.sf.net for bug corrections & thorough testing!
 - Paul Rouget
 		
-Please 1) Let me know If you are using it on exotic hardware / OS / compiler
-       2) If yo have a sourceforge account, leave a 3-word review on Sourceforge.
-          It helps the ranking on google.
+Please 1) let me know If you are using it on exotic hardware / OS / compiler
+       2) if you have a sourceforge account, leave a 1-word review on Sourceforge.
+	   3) leave an upvote to my stackoverflow answer https://stackoverflow.com/a/47651444
 
 tiny file dialogs (cross-platform C C++)
 InputBox PasswordBox MessageBox ColorPicker
@@ -111,6 +111,7 @@ misrepresented as being the original software.
   #endif /*TINYFD_NOSELECTFOLDERWIN*/
  #endif
  #include <conio.h>
+ #include <commdlg.h>
  /*#include <io.h>*/
  #define SLASH "\\"
 // MT: set below to 1 as we are using the char version on all platforms
@@ -121,13 +122,14 @@ misrepresented as being the original software.
  #include <dirent.h> /* on old systems try <sys/dir.h> instead */
  #include <termios.h>
  #include <sys/utsname.h>
+ #include <signal.h> /* on old systems try <sys/signal.h> instead */
  #define SLASH "/"
 #endif /* _WIN32 */
 
 #define MAX_PATH_OR_CMD 1024 /* _MAX_PATH or MAX_PATH */
 #define MAX_MULTIPLE_FILES 32
 
-char tinyfd_version [8] = "3.2.3";
+char tinyfd_version [8] = "3.2.9";
 
 int tinyfd_verbose = 0 ; /* print on unix the command line calls */
 
@@ -187,7 +189,7 @@ static char gMessageUnix[] = "\
 \ntiny file dialogs on UNIX needs:\
 \n   applescript\
 \nor kdialog\
-\nor zenity\
+\nor zenity (or matedialog or qarma)\
 \nor python (2 or 3) + tkinter + python-dbus (optional)\
 \nor dialog (opens a console if needed)\
 \nor xterm + bash (opens a console for basic input)\
@@ -331,7 +333,7 @@ static void replaceSubStr( char const * const aSource ,
 	char const * pOccurence ;
 	char const * p ;
 	char const * lNewSubStr = "" ;
-	int lOldSubLen = strlen( aOldSubStr ) ;
+	size_t lOldSubLen = strlen( aOldSubStr ) ;
 	
 	if ( ! aSource )
 	{
@@ -490,7 +492,7 @@ void tinyfd_beep()
 
 void tinyfd_beep()
 {
-	Beep(400,300);
+	Beep(440,300);
 }
 
 
@@ -794,7 +796,7 @@ static char const * ensureFilesExist(char * const aDestination,
 	char * lDestination = aDestination;
 	char const * p;
 	char const * p2;
-	int lLen;
+	size_t lLen;
 
 	if (!aSourcePathsAndNames)
 	{
@@ -986,9 +988,9 @@ int tinyfd_notifyPopupW(
 	wchar_t const * const aIconType) /* L"info" L"warning" L"error" */
 {
 	wchar_t * lDialogString;
-	int lTitleLen;
-	int lMessageLen;
-	int lDialogStringLen;
+	size_t lTitleLen;
+	size_t lMessageLen;
+	size_t lDialogStringLen;
 
 	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windows_wchar"); return 1; }
 
@@ -1089,9 +1091,9 @@ wchar_t const * tinyfd_inputBoxW(
 	FILE * lIn;
 	FILE * lFile;
 	int lResult;
-	int lTitleLen;
-	int lMessageLen;
-	int lDialogStringLen;
+	size_t lTitleLen;
+	size_t lMessageLen;
+	size_t lDialogStringLen;
 
 	if (aTitle&&!wcscmp(aTitle, L"tinyfd_query")){ strcpy(tinyfd_response, "windows_wchar"); return (wchar_t const *)1; }
 
@@ -1448,7 +1450,7 @@ wchar_t const * tinyfd_saveFileDialogW(
 	ofn.nMaxFileTitle = MAX_PATH_OR_CMD/2;
 	ofn.lpstrInitialDir = lDirname && wcslen(lDirname) ? lDirname : NULL;
 	ofn.lpstrTitle = aTitle && wcslen(aTitle) ? aTitle : NULL;
-	ofn.Flags = OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+	ofn.Flags = OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR | OFN_PATHMUSTEXIST ;
 	ofn.nFileOffset = 0;
 	ofn.nFileExtension = 0;
 	ofn.lpstrDefExt = NULL;
@@ -1598,7 +1600,7 @@ wchar_t const * tinyfd_openFileDialogW(
 	ofn.nMaxFileTitle = MAX_PATH_OR_CMD / 2;
 	ofn.lpstrInitialDir = lDirname && wcslen(lDirname) ? lDirname : NULL;
 	ofn.lpstrTitle = aTitle && wcslen(aTitle) ? aTitle : NULL;
-	ofn.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR;
+	ofn.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 	ofn.nFileOffset = 0;
 	ofn.nFileExtension = 0;
 	ofn.lpstrDefExt = NULL;
@@ -1843,7 +1845,7 @@ wchar_t const * tinyfd_colorChooserW(
 	cc.hInstance = NULL;
 	cc.rgbResult = RGB(lDefaultRGB[0], lDefaultRGB[1], lDefaultRGB[2]);
 	cc.lpCustColors = crCustColors;
-	cc.Flags = CC_RGBINIT | CC_FULLOPEN;
+	cc.Flags = CC_RGBINIT | CC_FULLOPEN | CC_ANYCOLOR ;
 	cc.lCustData = 0;
 	cc.lpfnHook = NULL;
 	cc.lpTemplateName = NULL;
@@ -3513,14 +3515,14 @@ static int speakertestPresent( )
 }
 
 
-static int beepPresent( )
+static int beepexePresent( )
 {
-	static int lBeepPresent = -1 ;
-	if ( lBeepPresent < 0 )
+	static int lBeepexePresent = -1 ;
+	if ( lBeepexePresent < 0 )
 	{
-		lBeepPresent = detectPresence("beep") ;
+		lBeepexePresent = detectPresence("beep.exe") ;
 	}
-	return lBeepPresent ;
+	return lBeepexePresent ;
 }
 
 
@@ -3570,25 +3572,49 @@ static int notifysendPresent( )
 
 static int perlPresent( )
 {
-    static int lPerlPresent = -1 ;
+	static int lPerlPresent = -1 ;
 	char lBuff [MAX_PATH_OR_CMD] ;
 	FILE * lIn ;
 
-    if ( lPerlPresent < 0 )
-    {
-        lPerlPresent = detectPresence("perl") ;
+	if ( lPerlPresent < 0 )
+	{
+		lPerlPresent = detectPresence("perl") ;
 		if ( lPerlPresent )
 		{
 			lIn = popen( "perl -MNet::DBus -e \"Net::DBus->session->get_service('org.freedesktop.Notifications')\" 2>&1" , "r" ) ;
 			if ( fgets( lBuff , sizeof( lBuff ) , lIn ) == NULL )
 			{
 				lPerlPresent = 2 ;
-            }
+			}
 			pclose( lIn ) ;
 			if (tinyfd_verbose) printf("perl-dbus %d\n", lPerlPresent);
 		}
     }
     return graphicMode() ? lPerlPresent : 0 ;
+}
+
+
+static int afplayPresent( )
+{
+	static int lAfplayPresent = -1 ;
+	char lBuff [MAX_PATH_OR_CMD] ;
+	FILE * lIn ;
+
+	if ( lAfplayPresent < 0 )
+	{
+		lAfplayPresent = detectPresence("afplay") ;
+		if ( lAfplayPresent )
+		{
+			lIn = popen( "test -e /System/Library/Sounds/Ping.aiff || echo Ping" , "r" ) ;
+			if ( fgets( lBuff , sizeof( lBuff ) , lIn ) == NULL )
+			{
+				lAfplayPresent = 2 ;
+			}
+			pclose( lIn ) ;
+			if (tinyfd_verbose) printf("afplay %d\n", lAfplayPresent);
+		}
+	}
+	return graphicMode() ? lAfplayPresent : 0 ;
 }
 
 
@@ -3690,6 +3716,17 @@ static int matedialogPresent( )
 }
 
 
+static int shellementaryPresent( )
+{
+	static int lShellementaryPresent = -1 ;
+	if ( lShellementaryPresent < 0 )
+	{
+		lShellementaryPresent = 0 ; /*detectPresence("shellementary"); shellementary is not ready yet */
+	}
+	return lShellementaryPresent && graphicMode( ) ;
+}
+
+
 static int zenityPresent( )
 {
 	static int lZenityPresent = -1 ;
@@ -3718,6 +3755,10 @@ static int zenity3Present()
 				if ( atoi(lBuff) >= 3 )
 				{
 					lZenity3Present = 3 ;
+					if ( atoi(strtok(lBuff,".")+2 ) >= 10 )
+					{
+						lZenity3Present = 4 ;
+					}
 				}
 				else if ( ( atoi(lBuff) == 2 ) && ( atoi(strtok(lBuff,".")+2 ) >= 32 ) )
 				{
@@ -3769,7 +3810,7 @@ static int python2Present( )
 		lPython2Present = 0 ;
 		strcpy(gPython2Name , "python2" ) ;
 		if ( detectPresence(gPython2Name) ) lPython2Present = 1;
-        else
+		else
 		{
 			for ( i = 9 ; i >= 0 ; i -- )
 			{
@@ -3780,11 +3821,11 @@ static int python2Present( )
 					break;
 				}
 			}
-			if ( ! lPython2Present )
-            {
-		        strcpy(gPython2Name , "python" ) ;
+			/*if ( ! lPython2Present )
+ 			{
+				strcpy(gPython2Name , "python" ) ;
 				if ( detectPresence(gPython2Name) ) lPython2Present = 1;
-            }
+			}*/
 		}
 		if (tinyfd_verbose) printf("lPython2Present %d\n", lPython2Present) ;
 		if (tinyfd_verbose) printf("gPython2Name %s\n", gPython2Name) ;
@@ -3814,11 +3855,11 @@ static int python3Present( )
 					break;
 				}
 			}
-			if ( ! lPython3Present )
+			/*if ( ! lPython3Present )
 			{
 				strcpy(gPython3Name , "python" ) ;
 				if ( detectPresence(gPython3Name) ) lPython3Present = 1;
-			}
+			}*/
 		}
 		if (tinyfd_verbose) printf("lPython3Present %d\n", lPython3Present) ;
 		if (tinyfd_verbose) printf("gPython3Name %s\n", gPython3Name) ;
@@ -3875,30 +3916,42 @@ static int pythonDbusPresent( )
     static int lDbusPresent = -1 ;
 	char lPythonCommand[256];
 	char lPythonParams[256] =
-"-c \"try:\n\timport dbus;bus=dbus.SessionBus();notif=bus.get_object('org.freedesktop.Notifications','/org/freedesktop/Notifications');notify=dbus.Interface(notif,'org.freedesktop.Notifications');\nexcept:\n\tprint(0);\"";
+"-c \"try:\n\timport dbus;bus=dbus.SessionBus();\
+notif=bus.get_object('org.freedesktop.Notifications','/org/freedesktop/Notifications');\
+notify=dbus.Interface(notif,'org.freedesktop.Notifications');\nexcept:\n\tprint(0);\"";
 
 	if ( lDbusPresent < 0 )
 	{
 		lDbusPresent = 0 ;
-        if ( python3Present() )
-        {
-			strcpy(gPythonName , gPython3Name ) ;
-    		sprintf( lPythonCommand , "%s %s" , gPythonName , lPythonParams ) ;
-		    lDbusPresent = tryCommand(lPythonCommand) ;
-		}
-
-		if ( ! lDbusPresent && python2Present() )
+		if ( python2Present() )
 		{
 			strcpy(gPythonName , gPython2Name ) ;
 			sprintf( lPythonCommand , "%s %s" , gPythonName , lPythonParams ) ;
 			lDbusPresent = tryCommand(lPythonCommand) ;
 		}
+
+		if ( ! lDbusPresent && python3Present() )
+		{
+			strcpy(gPythonName , gPython3Name ) ;
+			sprintf( lPythonCommand , "%s %s" , gPythonName , lPythonParams ) ;
+			lDbusPresent = tryCommand(lPythonCommand) ;
+		}
+
 		if (tinyfd_verbose) printf("lDbusPresent %d\n", lDbusPresent) ;
 		if (tinyfd_verbose) printf("gPythonName %s\n", gPythonName) ;
 	}
-    return lDbusPresent && graphicMode() && !(isDarwin() && getenv("SSH_TTY") );
+	return lDbusPresent && graphicMode() && !(isDarwin() && getenv("SSH_TTY") );
 }
 
+
+static void sigHandler(int sig)
+{
+	FILE * lIn ;
+	if ( ( lIn = popen( "pactl unload-module module-sine" , "r" ) ) )
+	{
+		pclose( lIn ) ;
+	}
+}
 
 void tinyfd_beep()
 {
@@ -3907,21 +3960,29 @@ void tinyfd_beep()
 
 	if ( osascriptPresent() )
 	{
-		strcpy( lDialogString , "osascript -e 'tell application \"System Events\" to beep'") ;
+		if ( afplayPresent() >= 2 )
+		{
+			strcpy( lDialogString , "afplay /System/Library/Sounds/Ping.aiff") ;
+		}
+		else
+		{
+			strcpy( lDialogString , "osascript -e 'tell application \"System Events\" to beep'") ;
+		}
 	}
 	else if ( pactlPresent() ) 
 	{
-		/*strcpy( lDialogString , "pactl load-module module-sine frequency=400;sleep .3;pactl unload-module module-sine" ) ;*/
-		strcpy( lDialogString , "thnum=$(pactl load-module module-sine frequency=400);sleep .3;pactl unload-module $thnum" ) ;
+		signal(SIGINT, sigHandler);
+		/*strcpy( lDialogString , "pactl load-module module-sine frequency=440;sleep .3;pactl unload-module module-sine" ) ;*/
+		strcpy( lDialogString , "thnum=$(pactl load-module module-sine frequency=440);sleep .3;pactl unload-module $thnum" ) ;
 	}
 	else if ( speakertestPresent() ) 
 	{
-		/*strcpy( lDialogString , "timeout -k .3 .3 speaker-test --frequency 400 --test sine > /dev/tty" ) ;*/
-		strcpy( lDialogString , "( speaker-test -t sine -f 400 > /dev/tty )& pid=$! ; sleep 0.3s ; kill -9 $pid" ) ;
+		/*strcpy( lDialogString , "timeout -k .3 .3 speaker-test --frequency 440 --test sine > /dev/tty" ) ;*/
+		strcpy( lDialogString , "( speaker-test -t sine -f 440 > /dev/tty )& pid=$!;sleep .3; kill -9 $pid" ) ;
 	}
-	else if ( beepPresent() ) 
+	else if ( beepexePresent() ) 
 	{
-		strcpy( lDialogString , "beep -f 400 -l 300" ) ;
+		strcpy( lDialogString , "beep.exe 440 300" ) ;
 	}
 	else
 	{
@@ -3933,6 +3994,11 @@ void tinyfd_beep()
 	if ( ( lIn = popen( lDialogString , "r" ) ) )
 	{
 		pclose( lIn ) ;
+	}
+
+	if ( pactlPresent() )
+	{
+		signal(SIGINT, SIG_DFL);
 	}
 }
 
@@ -3954,8 +4020,8 @@ int tinyfd_messageBox(
 	char lChar ;
 	struct termios infoOri;
 	struct termios info;
-	int lTitleLen ;
-	int lMessageLen ;
+	size_t lTitleLen ;
+	size_t lMessageLen ;
 
 	lBuff[0]='\0';
 
@@ -4111,13 +4177,13 @@ int tinyfd_messageBox(
 			strcat( lDialogString , ";if [ $? = 0 ];then echo 1;else echo 0;fi");
 		}
 	}
-	else if ( zenityPresent() || matedialogPresent() || qarmaPresent() )
+	else if ( zenityPresent() || matedialogPresent() || shellementaryPresent() || qarmaPresent() )
 	{
 		if ( zenityPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return 1;}
 			strcpy( lDialogString , "szAnswer=$(zenity" ) ;
-			if ( (zenity3Present() >= 3) && !getenv("SSH_TTY") )
+			if ( (zenity3Present() >= 4) && !getenv("SSH_TTY") )
 			{
 				strcat(lDialogString, " --attach=$(sleep .01;xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)"); /* contribution: Paul Rouget */
 			}
@@ -4126,6 +4192,11 @@ int tinyfd_messageBox(
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return 1;}
 			strcpy( lDialogString , "szAnswer=$(matedialog" ) ;
+		}
+		else if ( shellementaryPresent() )
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"shellementary");return 1;}
+			strcpy( lDialogString , "szAnswer=$(shellementary" ) ;
 		}
 		else
 		{
@@ -4175,7 +4246,7 @@ int tinyfd_messageBox(
 			strcat(lDialogString, aMessage) ;
 			strcat(lDialogString, "\"") ;
 		}
-		if ( (zenity3Present() >= 3) || qarmaPresent()  )
+		if ( (zenity3Present() >= 3) || shellementaryPresent() || qarmaPresent()  )
 		{
 			strcat( lDialogString , " --icon-name=dialog-" ) ;
 			if ( aIconType && (! strcmp( "question" , aIconType )
@@ -4601,7 +4672,7 @@ tinyfdRes=$(cat /tmp/tinyfd.txt);echo $tinyfdBool$tinyfdRes") ;
 			}
 		}
 	}
-	else if ( ! isTerminalRunning( ) && terminalName() )
+	else if (  isTerminalRunning( ) && terminalName() )
 	{
 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"basicinput");return 0;}
 		strcpy( lDialogString , terminalName() ) ;
@@ -4860,8 +4931,8 @@ int tinyfd_notifyPopup(
 	char * lDialogString = NULL ;
     char * lpDialogString ;
 	FILE * lIn ;
-	int lTitleLen ;
-	int lMessageLen ;
+	size_t lTitleLen ;
+	size_t lMessageLen ;
 
 	if ( getenv("SSH_TTY") )
 	{
@@ -4923,9 +4994,10 @@ int tinyfd_notifyPopup(
 		}
 		strcat( lDialogString , " \" 5" ) ;
 	}
-	else if ( (zenity3Present()>=3) || matedialogPresent() || qarmaPresent() )
+	else if ( (zenity3Present()>=4) || matedialogPresent() || shellementaryPresent() || qarmaPresent() )
 	{
 		/* zenity 2.32 has the notification but with a bug: it doesnt return from it */
+		/* zenity 3.8 show the notification as an alert ok cancel box */
 		if ( zenity3Present()>=3 )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return 1;}
@@ -4935,6 +5007,11 @@ int tinyfd_notifyPopup(
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return 1;}
 			strcpy( lDialogString , "matedialog" ) ;
+		}
+		else if ( shellementaryPresent() )
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"shellementary");return 1;}
+			strcpy( lDialogString , "shellementary" ) ;
 		}
 		else
 		{
@@ -4952,11 +5029,11 @@ int tinyfd_notifyPopup(
 		}
 
 		strcat( lDialogString , " --text \"" ) ;
-        if ( aTitle && strlen(aTitle) )
-        {
-            strcat(lDialogString, aTitle) ;
-            strcat(lDialogString, "\n") ;
-        }
+		if ( aTitle && strlen(aTitle) )
+		{
+			strcat(lDialogString, aTitle) ;
+			strcat(lDialogString, "\n") ;
+		}
 		if ( aMessage && strlen( aMessage ) )
 		{
 			strcat( lDialogString , aMessage ) ;
@@ -5061,8 +5138,8 @@ char const * tinyfd_inputBox(
 	struct termios oldt ;
 	struct termios newt ;
 	char * lEOF;
-	int lTitleLen ;
-	int lMessageLen ;
+	size_t lTitleLen ;
+	size_t lMessageLen ;
 
 	lBuff[0]='\0';
 
@@ -5146,13 +5223,13 @@ char const * tinyfd_inputBox(
 		strcat( lDialogString ,
 			");if [ $? = 0 ];then echo 1$szAnswer;else echo 0$szAnswer;fi");
 	}
-	else if ( zenityPresent() || matedialogPresent() || qarmaPresent() )
+	else if ( zenityPresent() || matedialogPresent() || shellementaryPresent() || qarmaPresent() )
 	{
 		if ( zenityPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return (char const *)1;}
 			strcpy( lDialogString , "szAnswer=$(zenity" ) ;
-			if ( (zenity3Present() >= 3) && !getenv("SSH_TTY") )
+			if ( (zenity3Present() >= 4) && !getenv("SSH_TTY") )
 			{
 				strcat( lDialogString, " --attach=$(sleep .01;xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)"); /* contribution: Paul Rouget */
 			}
@@ -5161,6 +5238,11 @@ char const * tinyfd_inputBox(
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return (char const *)1;}
 			strcpy( lDialogString ,  "szAnswer=$(matedialog" ) ;
+		}
+		else if ( shellementaryPresent() )
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"shellementary");return (char const *)1;}
+			strcpy( lDialogString , "szAnswer=$(shellementary" ) ;
 		}
 		else
 		{
@@ -5685,13 +5767,13 @@ char const * tinyfd_saveFileDialog(
 			strcat(lDialogString, "\"") ;
 		}
 	}
-	else if ( zenityPresent() || matedialogPresent() || qarmaPresent() )
+	else if ( zenityPresent() || matedialogPresent() || shellementaryPresent() || qarmaPresent() )
 	{
 		if ( zenityPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return (char const *)1;}
 			strcpy( lDialogString , "zenity" ) ;
-			if ( (zenity3Present() >= 3) && !getenv("SSH_TTY") )
+			if ( (zenity3Present() >= 4) && !getenv("SSH_TTY") )
 			{
 				strcat( lDialogString, " --attach=$(sleep .01;xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)"); /* contribution: Paul Rouget */
 			}
@@ -5700,6 +5782,11 @@ char const * tinyfd_saveFileDialog(
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return (char const *)1;}
 			strcpy( lDialogString , "matedialog" ) ;
+		}
+		else if ( shellementaryPresent() )
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"shellementary");return (char const *)1;}
+			strcpy( lDialogString , "shellementary" ) ;
 		}
 		else
 		{
@@ -6117,13 +6204,13 @@ char const * tinyfd_openFileDialog(
 			strcat(lDialogString, "\"") ;
 		}
 	}
-	else if ( zenityPresent() || matedialogPresent() || qarmaPresent() )
+	else if ( zenityPresent() || matedialogPresent() || shellementaryPresent() || qarmaPresent() )
 	{
 		if ( zenityPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return (char const *)1;}
 			strcpy( lDialogString , "zenity" ) ;
-			if ( (zenity3Present() >= 3) && !getenv("SSH_TTY") )
+			if ( (zenity3Present() >= 4) && !getenv("SSH_TTY") )
 			{
 				strcat( lDialogString, " --attach=$(sleep .01;xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)"); /* contribution: Paul Rouget */
 			}
@@ -6132,6 +6219,11 @@ char const * tinyfd_openFileDialog(
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return (char const *)1;}
 			strcpy( lDialogString , "matedialog" ) ;
+		}
+		else if ( shellementaryPresent() )
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"shellementary");return (char const *)1;}
+			strcpy( lDialogString , "shellementary" ) ;
 		}
 		else
 		{
@@ -6504,13 +6596,13 @@ char const * tinyfd_selectFolderDialog(
 			strcat(lDialogString, "\"") ;
 		}
 	}
-	else if ( zenityPresent() || matedialogPresent() || qarmaPresent() )
+	else if ( zenityPresent() || matedialogPresent() || shellementaryPresent() || qarmaPresent() )
 	{
 		if ( zenityPresent() )
 		{
 	 		if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return (char const *)1;}
 			strcpy( lDialogString , "zenity" ) ;
-			if ( (zenity3Present() >= 3) && !getenv("SSH_TTY") )
+			if ( (zenity3Present() >= 4) && !getenv("SSH_TTY") )
 			{
 				strcat( lDialogString, " --attach=$(sleep .01;xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)"); /* contribution: Paul Rouget */
 			}
@@ -6519,6 +6611,11 @@ char const * tinyfd_selectFolderDialog(
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return (char const *)1;}
 			strcpy( lDialogString , "matedialog" ) ;
+		}
+		else if ( shellementaryPresent() )
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"shellementary");return (char const *)1;}
+			strcpy( lDialogString , "shellementary" ) ;
 		}
 		else
 		{
@@ -6795,14 +6892,14 @@ to set mycolor to choose color default color {");
 			strcat(lDialogString, "\"") ;
 		}
 	}
-	else if ( zenity3Present() || matedialogPresent() || qarmaPresent() )
+	else if ( zenity3Present() || matedialogPresent() || shellementaryPresent() || qarmaPresent() )
 	{
 		lWasZenity3 = 1 ;
 		if ( zenity3Present() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity3");return (char const *)1;}
 			strcpy( lDialogString , "zenity" );
-			if ( (zenity3Present() >= 3) && !getenv("SSH_TTY") )
+			if ( (zenity3Present() >= 4) && !getenv("SSH_TTY") )
 			{
 				strcat( lDialogString, " --attach=$(sleep .01;xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)"); /* contribution: Paul Rouget */
 			}
@@ -6811,6 +6908,11 @@ to set mycolor to choose color default color {");
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return (char const *)1;}
 			strcpy( lDialogString , "matedialog" ) ;
+		}
+		else if ( shellementaryPresent() )
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"shellementary");return (char const *)1;}
+			strcpy( lDialogString , "shellementary" ) ;
 		}
 		else
 		{
@@ -6997,13 +7099,13 @@ char const * tinyfd_arrayDialog(
 
 	lBuff[0]='\0';
 
-	if ( zenityPresent() || matedialogPresent() || qarmaPresent() )
+	if ( zenityPresent() || matedialogPresent() || shellementaryPresent() || qarmaPresent() )
 	{
 		if ( zenityPresent() )
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"zenity");return (char const *)1;}
 			strcpy( lDialogString , "zenity" ) ;
-			if ( (zenity3Present() >= 3) && !getenv("SSH_TTY") )
+			if ( (zenity3Present() >= 4) && !getenv("SSH_TTY") )
 			{
 				strcat( lDialogString, " --attach=$(sleep .01;xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)"); /* contribution: Paul Rouget */
 			}
@@ -7012,6 +7114,11 @@ char const * tinyfd_arrayDialog(
 		{
 			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"matedialog");return (char const *)1;}
 			strcpy( lDialogString , "matedialog" ) ;
+		}
+		else if ( shellementaryPresent() )
+		{
+			if (aTitle&&!strcmp(aTitle,"tinyfd_query")){strcpy(tinyfd_response,"shellementary");return (char const *)1;}
+			strcpy( lDialogString , "shellementary" ) ;
 		}
 		else
 		{
