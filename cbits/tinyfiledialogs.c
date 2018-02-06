@@ -136,7 +136,8 @@ int tinyfd_verbose = 0 ; /* print on unix the command line calls */
 #if defined(TINYFD_NOLIB) && defined(_WIN32)
 int tinyfd_forceConsole = 1 ;
 #else
-int tinyfd_forceConsole = 0 ; /* 0 (default) or 1 */
+// MT: control via Haskell flag
+int tinyfd_forceConsole = HSFORCECONSOLE ; /* 0 (default) or 1 */
 #endif
 /* for unix & windows: 0 (graphic mode) or 1 (console mode).
 0: try to use a graphic solution, if it fails then it uses console mode.
