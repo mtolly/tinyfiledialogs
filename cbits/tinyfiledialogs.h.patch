@@ -1,0 +1,20 @@
+--- cbits/upstream.h	2018-02-14 18:50:03.000000000 -0600
++++ cbits/tinyfiledialogs.h	2018-02-14 18:41:30.000000000 -0600
+@@ -194,6 +194,8 @@
+ 		/* aDefaultRGB and aoResultRGB can be the same array */
+ 		/* returns NULL on cancel */
+ 
++// MT: removing these since we're not using them and c2hs has trouble parsing
++#if 0
+ 
+ /************ NOT CROSS PLATFORM SECTION STARTS HERE ************************/
+ #ifdef _WIN32
+@@ -273,6 +275,8 @@
+ 
+ #endif /*_WIN32 */
+ 
++#endif // MT: end removed section
++
+ #ifdef	__cplusplus
+ }
+ #endif
