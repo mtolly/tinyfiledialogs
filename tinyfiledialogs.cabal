@@ -11,7 +11,7 @@ build-type:           Simple
 extra-source-files:
   README.md
   changelog.md
-  cbits/tinyfiledialogs-patched.h
+  cbits/tinyfiledialogs.h
 cabal-version:        >= 1.10
 synopsis:             Wrapper around the 'tiny file dialogs' C library
 description:
@@ -52,7 +52,7 @@ library
   default-language:     Haskell2010
   ghc-options:          -Wall
   c-sources:
-    cbits/tinyfiledialogs-patched.c
+    cbits/tinyfiledialogs.c
   include-dirs:
     cbits/
   if os(mingw32)

@@ -89,7 +89,8 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 */
 
-#define _POSIX_C_SOURCE 2 /* to accept POSIX 2 in old ANSI C standards */
+// MT: removing because this breaks Windows GHCi. don't know why!
+// #define _POSIX_C_SOURCE 2 /* to accept POSIX 2 in old ANSI C standards */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -117,7 +118,8 @@ misrepresented as being the original software.
  #include <commdlg.h>
  #define TINYFD_NOCCSUNICODE
  #define SLASH "\\"
- int tinyfd_winUtf8 = 0 ; /* on windows string char can be 0:MBCS or 1:UTF-8 */
+// MT: set below to 1 as we are using the char version on all platforms
+ int tinyfd_winUtf8 = 1 ; /* on windows string char can be 0:MBCS or 1:UTF-8 */
 #else
  #include <limits.h>
  #include <unistd.h>
@@ -138,7 +140,8 @@ int tinyfd_verbose = 0 ; /* on unix: prints the command line calls */
 #if defined(TINYFD_NOLIB) && defined(_WIN32)
 int tinyfd_forceConsole = 1 ;
 #else
-int tinyfd_forceConsole = 0 ; /* 0 (default) or 1 */
+// MT: control via Haskell flag
+int tinyfd_forceConsole = HSFORCECONSOLE ; /* 0 (default) or 1 */
 #endif
 /* for unix & windows: 0 (graphic mode) or 1 (console mode).
 0: try to use a graphic solution, if it fails then it uses console mode.

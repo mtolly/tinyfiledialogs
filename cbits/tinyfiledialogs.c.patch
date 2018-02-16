@@ -1,6 +1,6 @@
---- cbits/tinyfiledialogs.c	2018-02-15 20:09:50.000000000 -0600
-+++ cbits/tinyfiledialogs-patched.c	2018-02-15 20:09:58.000000000 -0600
-@@ -89,14 +89,15 @@
+--- upstream/tinyfiledialogs.c	2018-02-16 10:52:12.000000000 -0600
++++ cbits/tinyfiledialogs.c	2018-02-16 10:57:05.000000000 -0600
+@@ -89,7 +89,8 @@
  3. This notice may not be removed or altered from any source distribution.
  */
  
@@ -10,14 +10,6 @@
  #include <stdio.h>
  #include <stdlib.h>
  #include <string.h>
- #include <ctype.h>
- #include <sys/stat.h>
- 
--#include "tinyfiledialogs.h"
-+#include "tinyfiledialogs-patched.h"
- /* #define TINYFD_NOLIB */ 
- 
- #ifdef _WIN32
 @@ -117,7 +118,8 @@
   #include <commdlg.h>
   #define TINYFD_NOCCSUNICODE
