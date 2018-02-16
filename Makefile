@@ -6,9 +6,9 @@ default:
 	@echo "  make patch # apply the patch files to upstream"
 
 diff:
-	diff -u cbits/upstream.c cbits/tinyfiledialogs.c > cbits/tinyfiledialogs.c.patch; true
-	diff -u cbits/upstream.h cbits/tinyfiledialogs.h > cbits/tinyfiledialogs.h.patch; true
+	diff -u cbits/tinyfiledialogs.c cbits/tinyfiledialogs-patched.c > cbits/tinyfiledialogs.c.patch; true
+	diff -u cbits/tinyfiledialogs.h cbits/tinyfiledialogs-patched.h > cbits/tinyfiledialogs.h.patch; true
 
 patch:
-	patch -o cbits/tinyfiledialogs.c cbits/upstream.c cbits/tinyfiledialogs.c.patch
-	patch -o cbits/tinyfiledialogs.h cbits/upstream.h cbits/tinyfiledialogs.h.patch
+	patch -o cbits/tinyfiledialogs-patched.c cbits/tinyfiledialogs.c cbits/tinyfiledialogs.c.patch
+	patch -o cbits/tinyfiledialogs-patched.h cbits/tinyfiledialogs.h cbits/tinyfiledialogs.h.patch

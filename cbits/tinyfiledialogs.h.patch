@@ -1,5 +1,5 @@
---- cbits/upstream.h	2018-02-14 18:50:03.000000000 -0600
-+++ cbits/tinyfiledialogs.h	2018-02-14 18:41:30.000000000 -0600
+--- cbits/tinyfiledialogs.h	2018-02-15 19:56:35.000000000 -0600
++++ cbits/tinyfiledialogs-patched.h	2018-02-15 20:04:07.000000000 -0600
 @@ -194,6 +194,8 @@
  		/* aDefaultRGB and aoResultRGB can be the same array */
  		/* returns NULL on cancel */

@@ -30,7 +30,7 @@ import qualified Data.Text.Encoding as TE
 import           Foreign.C          (peekCString, withCString)
 #endif
 
-#include "tinyfiledialogs.h"
+#include "tinyfiledialogs-patched.h"
 
 {#context prefix = "tinyfd_" #}
 
