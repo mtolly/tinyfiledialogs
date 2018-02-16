@@ -1,5 +1,5 @@
 /*_________
- /         \ tinyfiledialogs.c v3.3.0 [Feb 13, 2018] zlib licence
+ /         \ tinyfiledialogs.c v3.3.1 [Feb 16, 2018] zlib licence
  |tiny file| Unique code file created [November 9, 2014]
  | dialogs | Copyright (c) 2014 - 2018 Guillaume Vareille http://ysengrin.com
  \____  ___/ http://tinyfiledialogs.sourceforge.net
@@ -62,7 +62,7 @@ Unix (command line calls) ASCII UTF-8
 The same executable can run across desktops & distributions
 
 C89 & C++98 compliant: tested with C & C++ compilers
-VisualStudio MinGW-gcc GCC Clang TinyCC OpenWatcom-v2
+VisualStudio MinGW-gcc GCC Clang TinyCC OpenWatcom-v2 SunCC
 on Windows Mac Linux Bsd Solaris Minix Raspbian
 using Gnome Kde Enlightenment Mate Cinnamon Unity Lxde Lxqt Xfce
 WindowMaker IceWm Cde Jds OpenBox Awesome Jwm Xdm
@@ -101,6 +101,9 @@ misrepresented as being the original software.
 /* #define TINYFD_NOLIB */ 
 
 #ifdef _WIN32
+ #ifdef __BORLANDC__
+  #define _getch getch
+ #endif
  #ifndef _WIN32_WINNT
   #define _WIN32_WINNT 0x0500
  #endif
@@ -108,12 +111,12 @@ misrepresented as being the original software.
   #include <Windows.h>
   /*#define TINYFD_NOSELECTFOLDERWIN*/
   #ifndef TINYFD_NOSELECTFOLDERWIN
-        #include <Shlobj.h>
+   #include <Shlobj.h>
   #endif /*TINYFD_NOSELECTFOLDERWIN*/
  #endif
  #include <conio.h>
  #include <commdlg.h>
- /*#include <io.h>*/
+ #define TINYFD_NOCCSUNICODE
  #define SLASH "\\"
 // MT: set below to 1 as we are using the char version on all platforms
  int tinyfd_winUtf8 = 1 ; /* on windows string char can be 0:MBCS or 1:UTF-8 */
@@ -130,9 +133,9 @@ misrepresented as being the original software.
 #define MAX_PATH_OR_CMD 1024 /* _MAX_PATH or MAX_PATH */
 #define MAX_MULTIPLE_FILES 32
 
-char tinyfd_version [8] = "3.3.0";
+char tinyfd_version [8] = "3.3.1";
 
-int tinyfd_verbose = 0 ; /* print on unix the command line calls */
+int tinyfd_verbose = 0 ; /* on unix: prints the command line calls */
 
 #if defined(TINYFD_NOLIB) && defined(_WIN32)
 int tinyfd_forceConsole = 1 ;
@@ -614,7 +617,7 @@ static void RGB2HexW(
                 {
                         /* wprintf(L"aoResultHexRGB %s\n", aoResultHexRGB); */
                         swprintf(aoResultHexRGB,
-#if !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
+#if !defined(__BORLANDC__) && !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
                                 8,
 #endif
                         L"#%02hhx%02hhx%02hhx", aRGB[0], aRGB[1], aRGB[2]);
@@ -844,7 +847,7 @@ static int __stdcall EnumThreadWndProc(HWND hwnd, LPARAM lParam)
 { 
         wchar_t lTitleName[MAX_PATH];
         GetWindowTextW(hwnd, lTitleName, MAX_PATH);
-        /* wprintf(L"lTitleName %s \n", lTitleName);  */
+        /* wprintf(L"lTitleName %ls \n", lTitleName);  */
         if (wcscmp(L"tinyfiledialogsTopWindow", lTitleName) == 0)
         {
                 SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
@@ -1044,7 +1047,7 @@ Show-BalloonTip");
         }
         wcscat(lDialogString, L"\"");
 
-        /* wprintf ( L"lDialogString: %s\n" , lDialogString ) ; */
+        /* wprintf ( L"lDialogString: %ls\n" , lDialogString ) ; */
 
         hiddenConsoleW(lDialogString, aTitle, 0);
         free(lDialogString);
@@ -1106,8 +1109,8 @@ wchar_t const * tinyfd_inputBoxW(
 
         if (aDefaultInput)
         {
-        swprintf(lDialogString,
-#if !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
+			swprintf(lDialogString,
+#if !defined(__BORLANDC__) && !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
                 lDialogStringLen,
 #endif
                 L"%ls\\AppData\\Local\\Temp\\tinyfd.vbs", _wgetenv(L"USERPROFILE"));
@@ -1115,7 +1118,7 @@ wchar_t const * tinyfd_inputBoxW(
         else
         {
                 swprintf(lDialogString,
-#if !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
+#if !defined(__BORLANDC__) && !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
                         lDialogStringLen,
 #endif
                         L"%ls\\AppData\\Local\\Temp\\tinyfd.hta", _wgetenv(L"USERPROFILE"));
@@ -1246,12 +1249,19 @@ name = 'txt_input' value = '' style = 'float:left;width:100%' ><BR>\n\
         if (aDefaultInput)
         {
                 swprintf(lDialogString,
-#if !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
+#if !defined(__BORLANDC__) && !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
                         lDialogStringLen,
 #endif
                         L"%ls\\AppData\\Local\\Temp\\tinyfd.txt",_wgetenv(L"USERPROFILE"));
+
+#ifdef TINYFD_NOCCSUNICODE
+				lFile = _wfopen(lDialogString, L"w");
+				fputc(0xFF, lFile);
+				fputc(0xFE, lFile);
+#else
 				lFile = _wfopen(lDialogString, L"wt, ccs=UNICODE"); /*or ccs=UTF-16LE*/
-                fclose(lFile);
+#endif
+				fclose(lFile);
 
                 wcscpy(lDialogString, L"cmd.exe /c cscript.exe //U //Nologo ");
                 wcscat(lDialogString, L"%USERPROFILE%\\AppData\\Local\\Temp\\tinyfd.vbs ");
@@ -1263,30 +1273,39 @@ name = 'txt_input' value = '' style = 'float:left;width:100%' ><BR>\n\
                         L"cmd.exe /c mshta.exe %USERPROFILE%\\AppData\\Local\\Temp\\tinyfd.hta");
         }
 
-        /* printf ( "lDialogString: %s\n" , lDialogString ) ; */
+        /* wprintf ( "lDialogString: %ls\n" , lDialogString ) ; */
 
         hiddenConsoleW(lDialogString, aTitle, 1);
 
-        if (aDefaultInput)
-        {
-                swprintf(lDialogString,
-#if !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
-                        lDialogStringLen,
+        swprintf(lDialogString,
+#if !defined(__BORLANDC__) && !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
+                lDialogStringLen,
 #endif
-                        L"%s\\AppData\\Local\\Temp\\tinyfd.txt", _wgetenv(L"USERPROFILE"));
-				if (!(lIn = _wfopen(lDialogString, L"rt, ccs=UNICODE"))) /*or ccs=UTF-16LE*/
-                {
-                        _wremove(lDialogString);
-                        free(lDialogString);
-                        return NULL;
-                }
-
-                fgetws(lBuff, MAX_PATH_OR_CMD, lIn);
-                fclose(lIn);
+				L"%ls\\AppData\\Local\\Temp\\tinyfd.txt", _wgetenv(L"USERPROFILE"));
+		/* wprintf(L"lDialogString: %ls\n", lDialogString); */
+#ifdef TINYFD_NOCCSUNICODE
+		if (!(lIn = _wfopen(lDialogString, L"r")))
+#else
+		if (!(lIn = _wfopen(lDialogString, L"rt, ccs=UNICODE"))) /*or ccs=UTF-16LE*/
+#endif
+		{
                 _wremove(lDialogString);
+                free(lDialogString);
+                return NULL;
+        }
+#ifdef TINYFD_NOCCSUNICODE
+		fgets((char *)lBuff, 2*MAX_PATH_OR_CMD, lIn);
+#else
+		fgetws(lBuff, MAX_PATH_OR_CMD, lIn);
+#endif
+		fclose(lIn);
+		wipefileW(lDialogString);
+		_wremove(lDialogString);
 
-                swprintf(lDialogString,
-#if !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
+		if (aDefaultInput)
+		{
+			swprintf(lDialogString,
+#if !defined(__BORLANDC__) && !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
                         lDialogStringLen,
 #endif
                         L"%ls\\AppData\\Local\\Temp\\tinyfd.vbs",
@@ -1295,44 +1314,33 @@ name = 'txt_input' value = '' style = 'float:left;width:100%' ><BR>\n\
         else
         {
                 swprintf(lDialogString,
-#if !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
+#if !defined(__BORLANDC__) && !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
                         lDialogStringLen,
 #endif
-                        L"%ls\\AppData\\Local\\Temp\\tinyfd.txt",
-                        _wgetenv(L"USERPROFILE"));
-                /* wprintf( L"lDialogString: %s\n" , lDialogString ) ; */
-				if (!(lIn = _wfopen(lDialogString, L"rt, ccs=UNICODE"))) /*or ccs=UTF-16LE*/
-                {
-                        _wremove(lDialogString);
-                        free(lDialogString);
-                        return NULL;
-                }
-                
-                fgetws(lBuff, MAX_PATH_OR_CMD, lIn);
-                fclose(lIn);
-                
-                wipefileW(lDialogString);
-                _wremove(lDialogString);
-                swprintf(lDialogString,
-#if !defined(__TINYC__) && ( !defined(__GNUC__) || (__GNUC__) >= 5 )
-                        lDialogStringLen,
-#endif
-                        L"%s\\AppData\\Local\\Temp\\tinyfd.hta",
+                        L"%ls\\AppData\\Local\\Temp\\tinyfd.hta",
                         _wgetenv(L"USERPROFILE"));
         }
         _wremove(lDialogString);
         free(lDialogString);
-        /* wprintf( L"lBuff: %s\n" , lBuff ) ; */
-        lResult = ! wcsncmp(lBuff, L"1", 1) ;
+        /* wprintf( L"lBuff: %ls\n" , lBuff ) ; */
+#ifdef TINYFD_NOCCSUNICODE
+		lResult = !wcsncmp(lBuff+1, L"1", 1);
+#else
+		lResult = !wcsncmp(lBuff, L"1", 1);
+#endif
         
         /* printf( "lResult: %d \n" , lResult ) ; */
         if (!lResult)
         {
-                return NULL ;
+            return NULL ;
         }
 
-        /* printf( "aoBuff+1: %s\n" , aoBuff+1 ) ; */
-        return lBuff + 1 ;
+        /* wprintf( "lBuff+1: %ls\n" , lBuff+1 ) ; */
+#ifdef TINYFD_NOCCSUNICODE
+		return lBuff + 2;
+#else
+		return lBuff + 1;
+#endif
 }
 
 
@@ -4105,7 +4113,10 @@ int tinyfd_messageBox(
                 strcat( lDialogString, ")' ") ;
 
                 strcat( lDialogString,
-"-e 'if vButton is \"Yes\" then' -e 'return 1' -e 'else if vButton is \"No\" then' -e 'return 2' -e 'else' -e 'return 0' -e 'end if' " );
+"-e 'if vButton is \"Yes\" then' -e 'return 1'\
+ -e 'else if vButton is \"OK\" then' -e 'return 1'\
+ -e 'else if vButton is \"No\" then' -e 'return 2'\
+ -e 'else' -e 'return 0' -e 'end if' " );
 
                 strcat( lDialogString, "-e 'on error number -128' " ) ;
                 strcat( lDialogString, "-e '0' " );
